@@ -1,14 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
 
-import { registerValidation } from "../middleware/registerValidation";
+import { validationMiddleware } from "../middleware/validationMiddleware";
 
 const createTestApp = (): Hono => {
 	const app = new Hono();
 
-	registerValidation(app);
-
-	app.post("/help", async (context) => {
+	app.use("*", validationMiddleware).post("/help", async (context) => {
 		const body = await context.req.json();
 		return context.json({
 			ok: true,
