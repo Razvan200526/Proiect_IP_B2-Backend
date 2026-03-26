@@ -1,8 +1,12 @@
 import { Hono } from "hono";
+import { logger } from "hono/logger";
 import { registerValidation } from "./validation";
 
-const app = new Hono().basePath("/api");
+const app = new Hono().basePath("/api").use(logger());
 
+(globalThis as any).app = app;
+
+// 🔥 păstrezi validation-ul tău
 registerValidation(app);
 
 app.get("/", (c) => {
