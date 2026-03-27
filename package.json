@@ -6,7 +6,7 @@
     "db:migrate": "bunx drizzle-kit migrate",
     "db": "bun db:generate && bun db:migrate",
     "db:studio": "bunx drizzle-kit studio",
-    "dev": "bun run --hot src/index.ts",
+    "dev": "bun db:setup && bun run --hot src/index.ts",
     "fmt": "bunx @biomejs/biome check . --write",
     "lint": "bunx @biomejs/biome lint ."
   },
