@@ -29,3 +29,4 @@ export const helpRequest = pgTable("HelpRequest", {
 });
 
 export type HelpRequestType = InferSelectModel<typeof helpRequest>;
+export type RequestStatusType = typeof RequestStatus.enumValues[number];
