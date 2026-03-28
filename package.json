@@ -28,6 +28,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@better-auth/cli": "^1.4.21",
     "@biomejs/biome": "^2.4.9",
     "@types/bun": "latest",
     "@types/pg": "^8.20.0",
