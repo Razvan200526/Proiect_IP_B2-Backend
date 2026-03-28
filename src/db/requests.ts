@@ -17,13 +17,13 @@ import {
 	assignmentStatusEnum,
 } from "./enums";
 import { volunteers } from "./profile";
-import { users } from "./users";
+import { user } from "./auth-schema";
 
 export const helpRequests = pgTable(
 	"help_requests",
 	{
 		id: serial("id").primaryKey(),
-		userId: text("user_id").references(() => users.id, {
+		userId: text("user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
 		guestSessionId: varchar("guest_session_id", { length: 128 }),
@@ -77,7 +77,7 @@ export const taskAssignments = pgTable("task_assignments", {
 		.references(() => helpRequests.id, { onDelete: "cascade" }),
 	requestedByUserId: text("requested_by_user_id")
 		.notNull()
-		.references(() => users.id),
+		.references(() => user.id),
 	handledByVolunteerId: integer("handled_by_volunteer_id")
 		.notNull()
 		.references(() => volunteers.id),

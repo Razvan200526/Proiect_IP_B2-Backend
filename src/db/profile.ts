@@ -9,16 +9,18 @@ import {
 	jsonb,
 	geometry,
 	index,
+	timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { users } from "./users";
+import { user } from "./auth-schema";
+import { verificationStatusEnum } from "./enums";
 
 export const profiles = pgTable("profiles", {
 	id: serial("id").primaryKey(),
 	userId: text("user_id")
 		.notNull()
 		.unique()
-		.references(() => users.id, {
+		.references(() => user.id, {
 			onDelete: "cascade",
 		}),
 	bio: text("bio"),
@@ -31,7 +33,7 @@ export const volunteers = pgTable("volunteers", {
 	userId: text("user_id")
 		.notNull()
 		.unique()
-		.references(() => users.id, { onDelete: "cascade" }),
+		.references(() => user.id, { onDelete: "cascade" }),
 	availability: boolean("availability").notNull().default(false),
 	trustScore: real("trust_score").notNull().default(0),
 	completedTasks: integer("completed_tasks").notNull().default(0),
@@ -78,11 +80,36 @@ export const volunteerKnownLocations = pgTable(
 	],
 );
 
-export const volunteersRelations = relations(volunteers, ({ one }) => ({
+export const userVerifications = pgTable("user_verifications", {
+	id: serial("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.unique()
+		.references(() => user.id, { onDelete: "cascade" }),
+	status: verificationStatusEnum("status").notNull().default("PENDING"),
+	submittedAt: timestamp("submitted_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+	verifiedAt: timestamp("verified_at", { withTimezone: true }),
+});
+
+export const profilesRelations = relations(profiles, ({ one }) => ({
+	user: one(user, {
+		fields: [profiles.userId],
+		references: [user.id],
+	}),
+}));
+
+export const volunteersRelations = relations(volunteers, ({ one, many }) => ({
+	user: one(user, {
+		fields: [volunteers.userId],
+		references: [user.id],
+	}),
 	volunteerProfile: one(volunteerProfiles, {
 		fields: [volunteers.id],
 		references: [volunteerProfiles.volunteerId],
 	}),
+	knownLocations: many(volunteerKnownLocations),
 }));
 
 export const volunteerProfilesRelations = relations(
@@ -91,6 +118,26 @@ export const volunteerProfilesRelations = relations(
 		volunteer: one(volunteers, {
 			fields: [volunteerProfiles.volunteerId],
 			references: [volunteers.id],
+		}),
+	}),
+);
+
+export const volunteerKnownLocationsRelations = relations(
+	volunteerKnownLocations,
+	({ one }) => ({
+		volunteer: one(volunteers, {
+			fields: [volunteerKnownLocations.volunteerId],
+			references: [volunteers.id],
+		}),
+	}),
+);
+
+export const userVerificationsRelations = relations(
+	userVerifications,
+	({ one }) => ({
+		user: one(user, {
+			fields: [userVerifications.userId],
+			references: [user.id],
 		}),
 	}),
 );

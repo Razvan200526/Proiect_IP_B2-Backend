@@ -6,6 +6,12 @@ export const accountStatusEnum = pgEnum("account_status", [
 	"BLOCKED",
 ]);
 
+export const verificationStatusEnum = pgEnum("verification_status", [
+	"PENDING",
+	"VERIFIED",
+	"REJECTED",
+]);
+
 export const urgencyLevelEnum = pgEnum("urgency_level", [
 	"LOW",
 	"MEDIUM",

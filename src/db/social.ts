@@ -2,7 +2,7 @@ import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { conversationStatusEnum, notificationTypeEnum } from "./enums";
 import { taskAssignments } from "./requests";
-import { users } from "./users";
+import { user } from "./auth-schema";
 
 export const conversations = pgTable("conversations", {
 	id: serial("id").primaryKey(),
@@ -20,7 +20,7 @@ export const messages = pgTable("messages", {
 		.references(() => conversations.id, { onDelete: "cascade" }),
 	senderId: text("sender_id")
 		.notNull()
-		.references(() => users.id),
+		.references(() => user.id),
 	content: text("content").notNull(),
 	sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -32,10 +32,10 @@ export const ratings = pgTable("ratings", {
 		.references(() => taskAssignments.id, { onDelete: "cascade" }),
 	writtenByUserId: text("written_by_user_id")
 		.notNull()
-		.references(() => users.id),
+		.references(() => user.id),
 	receivedByUserId: text("received_by_user_id")
 		.notNull()
-		.references(() => users.id),
+		.references(() => user.id),
 	stars: integer("stars").notNull(),
 	comment: text("comment"),
 	createdAt: timestamp("created_at", { withTimezone: true })
@@ -47,7 +47,7 @@ export const interactionHistories = pgTable("interaction_histories", {
 	id: serial("id").primaryKey(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
+		.references(() => user.id, { onDelete: "cascade" }),
 	taskAssignmentId: integer("task_assignment_id")
 		.notNull()
 		.references(() => taskAssignments.id, { onDelete: "cascade" }),
@@ -59,7 +59,7 @@ export const notifications = pgTable("notifications", {
 	id: serial("id").primaryKey(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
+		.references(() => user.id, { onDelete: "cascade" }),
 	type: notificationTypeEnum("type").notNull(),
 	text: text("text").notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true })

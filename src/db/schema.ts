@@ -2,4 +2,4 @@ export * from "./enums";
 export * from "./profile";
 export * from "./requests";
 export * from "./social";
-export * from "./users";
+export * from "./auth-schema";
