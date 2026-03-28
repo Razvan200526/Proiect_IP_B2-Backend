@@ -1,34 +1,34 @@
-import { Hono } from "hono";
+import type { Hono } from "hono";
 
-import { readdirSync, statSync } from "fs";
-import { join } from "path";
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 export function Controller(basePath: string) {
-  return function (target: any) {
-    const app = (globalThis as any).app;
+	return (target: any) => {
+		const app = (globalThis as any).app;
 
-    if (!app) {
-      throw new Error("Controller used outside of app");
-    }
+		if (!app) {
+			throw new Error("Controller used outside of app");
+		}
 
-    const controller: Hono = target.controller;
+		const controller: Hono = target.controller;
 
-    if (!controller) {
-      throw new Error("Missing static controller property");
-    }
+		if (!controller) {
+			throw new Error("Missing static controller property");
+		}
 
-    app.route(basePath, controller);
-  };
+		app.route(basePath, controller);
+	};
 }
 
 export async function loadControllers(dir: string) {
-  for (const file of readdirSync(dir)) {
-    const fullPath = join(dir, file);
+	for (const file of readdirSync(dir)) {
+		const fullPath = join(dir, file);
 
-    if (statSync(fullPath).isDirectory()) {
-      await loadControllers(fullPath);
-    } else if (file.endsWith(".ts")) {
-      await import(fullPath);
-    }
-  }
+		if (statSync(fullPath).isDirectory()) {
+			await loadControllers(fullPath);
+		} else if (file.endsWith(".ts")) {
+			await import(fullPath);
+		}
+	}
 }
