@@ -7,7 +7,6 @@ import { join } from "path";
 await loadControllers(join(import.meta.dir, "controllers"));
 parseEnv();
 
-export const db = drizzle(Bun.env.DATABASE_URL);
 
 const server = Bun.serve({
 	port: Bun.env.PORT || 3001,
