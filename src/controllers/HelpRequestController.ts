@@ -14,7 +14,7 @@ export class HelpRequestController {
       const result = await helpRequestService.createHelpRequest(body);
       return c.json(result, 201);
     })
-      .post("/:id/status ", async(c) => {
+      .post("/:id/status", async(c) => {
           const {id} = c.req.param();
 
           let body: { status?: unknown };
