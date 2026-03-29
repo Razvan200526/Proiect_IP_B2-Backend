@@ -35,5 +35,16 @@ export class RatingsController {
             console.error("RATING ERROR:", err);
             return c.json({ error: "Internal server error" }, 500);
         }
+    })
+    .get("/user/:userId", async (c) => {
+        try {
+            const userId = c.req.param("userId");
+            const ratings = await RatingsService.getRatingsForUser(userId);
+
+            return c.json(ratings, 200);
+        } catch (err) {
+            console.error("GET RATINGS ERROR: ", err);
+            return c.json({ error: "Internal server error" }, 500);
+        }
     });
 }

@@ -1,6 +1,4 @@
-import { db } from "../db";
-import { ratings, taskAssignments, volunteers } from "../db/schema";
-import { and, eq } from "drizzle-orm";
+import { RatingsRepository } from "../repositories/RatingsRepository";
 
 export type CreateRatingInput = {
     taskAssignmentId: number;
@@ -39,10 +37,7 @@ export class RatingsService {
             };
         }
 
-        const [taskData] = await db
-            .select()
-            .from(taskAssignments)
-            .where(eq(taskAssignments.id, taskAssignmentId));
+        const [taskData] = await RatingsRepository.getTaskAssignmentById(taskAssignmentId);
 
         if (!taskData) {
             return {
@@ -58,10 +53,7 @@ export class RatingsService {
             };
         }
 
-        const [volunteer] = await db
-            .select()
-            .from(volunteers)
-            .where(eq(volunteers.id, taskData.handledByVolunteerId));
+        const [volunteer] = await RatingsRepository.getVolunteerById(taskData.handledByVolunteerId);
 
         if (!volunteer) {
             return {
@@ -73,8 +65,7 @@ export class RatingsService {
         const requesterId = taskData.requestedByUserId;
         const volunteerUserId = volunteer.userId;
 
-        const requesterRatesVolunteer =writtenByUserId === requesterId && receivedByUserId === volunteerUserId;
-
+        const requesterRatesVolunteer = writtenByUserId === requesterId && receivedByUserId === volunteerUserId;
         const volunteerRatesRequester = writtenByUserId === volunteerUserId && receivedByUserId === requesterId;
 
         if (!requesterRatesVolunteer && !volunteerRatesRequester) {
@@ -84,16 +75,11 @@ export class RatingsService {
             };
         }
 
-        const [existingRating] = await db
-            .select()
-            .from(ratings)
-            .where(
-                and(
-                    eq(ratings.taskAssignmentId, taskAssignmentId),
-                    eq(ratings.writtenByUserId, writtenByUserId),
-                    eq(ratings.receivedByUserId, receivedByUserId)
-                )
-            );
+        const [existingRating] = await RatingsRepository.findRating(
+            taskAssignmentId,
+            writtenByUserId,
+            receivedByUserId
+        );
 
         if (existingRating) {
             return {
@@ -102,20 +88,21 @@ export class RatingsService {
             };
         }
 
-        const [createdRating] = await db
-            .insert(ratings)
-            .values({
-                taskAssignmentId,
-                writtenByUserId,
-                receivedByUserId,
-                stars,
-                comment: comment.trim()
-            })
-            .returning();
+        const [createdRating] = await RatingsRepository.createRating({
+            taskAssignmentId,
+            writtenByUserId,
+            receivedByUserId,
+            stars,
+            comment: comment.trim(),
+        });
 
         return {
             status: 201,
-            body: createdRating
+            body: createdRating,
         };
+    }
+
+    static async getRatingsForUser(userId: string) {
+        return RatingsRepository.getRatingsByReceivedUserId(userId);
     }
 }
