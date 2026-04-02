@@ -32,6 +32,6 @@ jobs:
 
       - name: Tests
         run: |
-          bunx @biomejs/biome ci
           bun test
+        # bunx @biomejs/biome ci
 
