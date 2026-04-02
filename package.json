@@ -8,7 +8,8 @@
     "db:studio": "bunx drizzle-kit studio",
     "dev": "bun db:setup && bun run --hot src/index.ts",
     "fmt": "bunx @biomejs/biome check . --write",
-    "lint": "bunx @biomejs/biome lint ."
+    "lint": "bunx @biomejs/biome lint .",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1019.0",
