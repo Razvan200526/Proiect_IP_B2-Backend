@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { Controller } from "../utils/Controller";
+import { Controller } from "../utils/controller";
 import { helpRequestService } from "../services/HelpRequestService";
 
 @Controller("/tasks")
