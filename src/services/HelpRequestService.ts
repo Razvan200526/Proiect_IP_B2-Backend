@@ -2,10 +2,16 @@ import { helpRequestRepository, type CreateHelpRequestDTO } from "../db/reposito
 
 export class HelpRequestService {
   async createHelpRequest(data: CreateHelpRequestDTO) {
-    return await helpRequestRepository.create({
-      ...data,
-      status: "OPEN",
-    });
+    try {
+      return await helpRequestRepository.create({
+        ...data,
+        status: "OPEN",
+      });
+    } catch (error) {
+      console.error("Failed to create help request:", error);
+      throw new Error("Could not create help request");
+    }
+
   }
 }
 
