@@ -1,12 +1,17 @@
-import { helpRequestRepository, type CreateHelpRequestDTO } from "../db/repositories/helpRequests.repository";
-import { helpRequestRepository } from "@server/repositories/HelpRequestRepository";
-import { type HelpRequestType, type RequestStatusType } from "@server/db/schema";
-import {InvalidStatusTransitionError, NotFoundError} from "@server/utils/Errors";
+import {
+  helpRequestRepository,
+  type CreateHelpRequestDTO,
+  type HelpRequest,
+} from "../db/repositories/helpRequests.repository";
+import { requestStatusEnum } from "../db/enums";
+import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 
 // State machine
-const VALID_TRANSITIONS: Partial<Record<RequestStatusType, RequestStatusType[]>> = {
-  OPEN:        ["MATCHED"],
-  MATCHED:     ["IN_PROGRESS", "CANCELLED", "REJECTED"],
+type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
+
+const VALID_TRANSITIONS: Partial<Record<RequestStatus, RequestStatus[]>> = {
+  OPEN: ["MATCHED"],
+  MATCHED: ["IN_PROGRESS", "CANCELLED", "REJECTED"],
   IN_PROGRESS: ["COMPLETED", "CANCELLED"],
 };
 
@@ -32,10 +37,10 @@ export class HelpRequestService {
    * @throws {NotFoundError} If the HelpRequest is not found (404)
    * @throws {InvalidStatusTransitionError} If the transition is forbidden (400)
    */
-  async updateHelpRequestStatus(id: string,newStatus: RequestStatusType): Promise<HelpRequestType> {
-    const current = await helpRequestRepository.findByID(id);
+  async updateHelpRequestStatus(id: number, newStatus: RequestStatus): Promise<HelpRequest> {
+    const current = await helpRequestRepository.findById(id);
     if (!current) {
-      throw new NotFoundError("HelpRequest", id);
+      throw new NotFoundError("HelpRequest", String(id));
     }
 
     const currentStatus = current.status;
@@ -46,7 +51,11 @@ export class HelpRequestService {
     }
 
     const updated = await helpRequestRepository.updateStatus(id, newStatus);
-    return updated!;
+    if (!updated) {
+      throw new NotFoundError("HelpRequest", String(id));
+    }
+
+    return updated;
 
   }
 }
