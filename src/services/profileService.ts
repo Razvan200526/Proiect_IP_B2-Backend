@@ -1,49 +1,55 @@
-import { profileRepository, type Profile, type CreateProfileDTO, type UpdateProfileDTO } from "../db/repositories/profile.repository";
+import{
+    type ProfileRepository,
+    profileRepository,
+} from "../db/repositories/profile.repository";   
 
+export class ProfileService{
+    private readonly repo: ProfileRepository;
+    
+    constructor(){
+        this.repo = profileRepository;
+    }
 
-export class ProfileService {
-    async createProfile(data: CreateProfileDTO): Promise<Profile> {
-        const existing = await profileRepository.findByUserId(data.userId);
-        if (existing) {
-            throw new Error(`Profile for user '${data.userId}' already exists.`);
-        }
-        return await profileRepository.create({
-            ...data,
-            bio: data.bio?.trim() ?? null,
+    async createProfile(userId: string, data: {bio? : string; languages? : string[]; hiddenIdentity? : boolean}){
+        const existing = await this.repo.findFirstBy({userId});
+        if(existing) throw new Error(`Profile for user '${userId}' already exists`);
+        return await this.repo.create({
+            userId,
+            bio: data.bio?.trim()??null,
+            languages: data.languages ?? [],
+            hiddenIdentity : data.hiddenIdentity ?? false,
+
         });
-    }
 
-    async getProfileById(id: number): Promise<Profile> {
-        const profile = await profileRepository.findById(id);
-        if (!profile) throw new Error(`Profile with id '${id}' not found.`);
-        return profile;
     }
-
-    async getProfileByUserId(userId: string): Promise<Profile> {
-        const profile = await profileRepository.findByUserId(userId);
+    async getProfileByUserId(userId: string) {
+        const profile = await this.repo.findFirstBy({ userId });
         if (!profile) throw new Error(`Profile for user '${userId}' not found.`);
         return profile;
     }
 
-    async getProfiles(limit = 50, offset = 0): Promise<Profile[]> {
-        return await profileRepository.findMany(limit, offset);
+    async getProfileById(id: number) {
+        const profile = await this.repo.findById(id);
+        if (!profile) throw new Error(`Profile with id '${id}' not found.`);
+        return profile;
     }
 
-    async updateProfile(id: number, data: UpdateProfileDTO): Promise<Profile> {
-        const exists = await profileRepository.exists(id);
-        if (!exists) throw new Error(`Profile with id '${id}' not found.`);
-        const result = await profileRepository.update(id, {
+
+    async updateProfile(userId: string, data: { bio?: string; languages?: string[]; hiddenIdentity?: boolean }) {
+        const existing = await this.repo.findFirstBy({ userId });
+        if (!existing) throw new Error(`Profile for user '${userId}' not found.`);
+
+        return await this.repo.update(existing.id, {
             ...data,
-            ...(data.bio && { bio: data.bio.trim() }),
+            ...(data.bio !== undefined && { bio: data.bio.trim() }),
         });
-        return result!;
     }
 
-    async deleteProfile(id: number): Promise<boolean> {
-        const exists = await profileRepository.exists(id);
-        if (!exists) throw new Error(`Profile with id '${id}' not found.`);
-        return await profileRepository.delete(id);
+    async deleteProfile(userId: string) {
+        const existing = await this.repo.findFirstBy({ userId });
+        if (!existing) throw new Error(`Profile for user '${userId}' not found.`);
+        return await this.repo.delete(existing.id);
     }
+
 }
-
 export const profileService = new ProfileService();
