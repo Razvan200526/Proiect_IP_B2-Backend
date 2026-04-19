@@ -3,7 +3,7 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - devops/ci-pipeline
+      - main
   workflow_dispatch:
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
     name: Run Tests and Build
     runs-on: ubuntu-latest
 
-
+    # A local Test Database for CI Testing
     services:
       postgres:
         image: postgis/postgis:17-3.4
@@ -50,8 +50,8 @@ jobs:
 
       - name: Tests
         run: |
+          bunx @biomejs/biome ci
           bun test
-        # bunx @biomejs/biome ci
 
       - name: Build
         run: bun run build
