@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { auth } from "./auth";
 import { logger } from "hono/logger";
+import { db } from "./db";
+import * as schema from "./db/auth-schema";
+import { eq } from "drizzle-orm";
 import type { Context, Next } from "hono";
 const app = new Hono().basePath("/api").use(logger());
 
@@ -14,7 +17,26 @@ app.use(
     credentials: true,
   })
 );
+app.post("/auth/email-otp/check-verification-otp", async (c) => {
+  const body = await c.req.json();
+  
+  // clonăm request-ul cu body-ul deja citit
+  const clonedRequest = new Request(c.req.raw.url, {
+    method: c.req.raw.method,
+    headers: c.req.raw.headers,
+    body: JSON.stringify(body),
+  });
 
+  const response = await auth.handler(clonedRequest);
+  
+  if (response.status === 200 && body?.type === "email-verification" && body?.email) {
+    await db.update(schema.user)
+      .set({ emailVerified: true })
+      .where(eq(schema.user.email, body.email));
+  }
+  
+  return response;
+});
 app.on(["GET", "POST"], "/auth/*", (c) => {
   return auth.handler(c.req.raw);
 });
