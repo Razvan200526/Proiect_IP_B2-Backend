@@ -73,16 +73,14 @@ export const auth = betterAuth({
     openAPI(),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
-        console.log("PLUGIN-UL A FOST APELAT! Email:", email, "Type:", type, "OTP:", otp);
         try {
           if (type === "email-verification") {
-            await mailer.sendVerificationEmail(email, otp);
+             await mailer.sendVerificationEmail(email, otp);
           } else if (type === "sign-in") {
             await mailer.sendSignInEmail(email, otp);
           } else {
             await mailer.sendResetPasswordEmail(email, otp);
           }
-          console.log("Nodemailer a expediat mail-ul!");
         } catch (error) {
           console.error("EROARE SMTP:", error);
         }
