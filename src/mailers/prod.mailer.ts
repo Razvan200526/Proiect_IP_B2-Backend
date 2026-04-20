@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export class ProdMailer implements Mailer {
   async send({ to, subject, html }: { to: string; subject: string; html: string }) {
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: process.env.EMAIL_FROM!,
       to,
       subject,
       html,

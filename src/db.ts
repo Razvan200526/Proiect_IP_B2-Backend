@@ -4,4 +4,4 @@ if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL not found");
 }
 
-export const db = drizzle(process.env.DATABASE_URL, { logger: true });
+export const db = drizzle(process.env.DATABASE_URL);
