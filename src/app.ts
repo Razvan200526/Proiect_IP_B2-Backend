@@ -20,10 +20,6 @@ app.use(
 app.post("/auth/email-otp/check-verification-otp", async (c) => {
   const body = await c.req.json();
   
-<<<<<<< feat/auth-setup
-  // clonăm request-ul cu body-ul deja citit
-=======
->>>>>>> main
   const clonedRequest = new Request(c.req.raw.url, {
     method: c.req.raw.method,
     headers: c.req.raw.headers,
@@ -40,12 +36,6 @@ app.post("/auth/email-otp/check-verification-otp", async (c) => {
   
   return response;
 });
-<<<<<<< feat/auth-setup
-app.on(["GET", "POST"], "/auth/*", (c) => {
-  return auth.handler(c.req.raw);
-});
-=======
->>>>>>> main
 
 export const requireAuth = async (c: Context, next: Next) => {
   const session = await auth.api.getSession({
@@ -60,7 +50,3 @@ export const requireAuth = async (c: Context, next: Next) => {
 (globalThis as any).app = app;
 
 export default app;
-<<<<<<< feat/auth-setup
-=======
-
->>>>>>> main
