@@ -28,13 +28,8 @@ export const auth = betterAuth({
 
   advanced: {
     crossSubDomainCookies: { enabled: true },
-    trustedProxies: ["127.0.0.1", "::1"],
-    trustedOrigins: [
-      "http://localhost:3001",
-      "http://localhost:5173",
-      "http://127.0.0.1:3001",
-      "http://127.0.0.1:5173"
-    ],
+    trustedProxies: (process.env.TRUSTED_PROXIES ?? "").split(","),
+    trustedOrigins: (process.env.TRUSTED_ORIGINS ?? "").split(","),
     cookiePrefix: "my-app",
     useSecureCookies: false,
     cookies: {
