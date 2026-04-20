@@ -2,6 +2,10 @@ import{
     type ProfileRepository,
     profileRepository,
 } from "../db/repositories/profile.repository";   
+import { db } from "../db";
+import { user } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { CreateProfileType, UpdateProfileType } from "../utils/validators/profileValidator";
 
 export class ProfileService{
     private readonly repo: ProfileRepository;
@@ -10,17 +14,25 @@ export class ProfileService{
         this.repo = profileRepository;
     }
 
-    async createProfile(userId: string, data: {bio? : string; languages? : string[]; hiddenIdentity? : boolean}){
+    async createProfile(userId: string, data: CreateProfileType) {
         const existing = await this.repo.findFirstBy({userId});
-        if(existing) throw new Error(`Profile for user '${userId}' already exists`);
-        return await this.repo.create({
-            userId,
-            bio: data.bio?.trim()??null,
-            languages: data.languages ?? [],
-            hiddenIdentity : data.hiddenIdentity ?? false,
+        if (existing) throw new Error("Profile already exists");
 
+        await db.update(user)
+            .set({
+                name: data.name,
+                image: data.image,
+            })
+            .where(eq(user.id, userId));
+
+        const created = await this.repo.create({
+            userId,
+            bio: data.bio,
+            languages: data.languages,
+            hiddenIdentity: data.hiddenIdentity,
         });
 
+        return created;
     }
     async getProfileByUserId(userId: string) {
         const profile = await this.repo.findFirstBy({ userId });
@@ -35,15 +47,27 @@ export class ProfileService{
     }
 
 
-    async updateProfile(userId: string, data: { bio?: string; languages?: string[]; hiddenIdentity?: boolean }) {
-        const existing = await this.repo.findFirstBy({ userId });
-        if (!existing) throw new Error(`Profile for user '${userId}' not found.`);
+ async updateProfile(userId: string, data: UpdateProfileType) {
+    const existing = await this.repo.findFirstBy({userId});
+    if (!existing) throw new Error("Profile not found");
 
-        return await this.repo.update(existing.id, {
-            ...data,
-            ...(data.bio !== undefined && { bio: data.bio.trim() }),
-        });
+    if (data.name || data.image) {
+        await db.update(user)
+            .set({
+                name: data.name,
+                image: data.image,
+            })
+            .where(eq(user.id, userId));
     }
+
+    const updated = await this.repo.update(existing.id,{
+        bio: data.bio,
+        languages: data.languages,
+        hiddenIdentity: data.hiddenIdentity,
+    });
+
+    return updated;
+}
 
     async deleteProfile(userId: string) {
         const existing = await this.repo.findFirstBy({ userId });

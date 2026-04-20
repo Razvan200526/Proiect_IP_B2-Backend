@@ -40,11 +40,11 @@ export const auth = betterAuth({
 	//     },
 	//   },
 
-	// rateLimit: {
-	// 	enabled: true,
-	// 	window: 60 * 1000,
-	// 	max: 10,
-	// },
+	rateLimit: {
+		enabled: true,
+		window: 60 * 1000,
+		max: 10,
+	},
 
 	trustedOrigins: [
     "http://localhost:5173",
@@ -52,9 +52,7 @@ export const auth = betterAuth({
     "http://localhost:3000",
     "null",
 ],
-	rateLimit:{
-		enabled: false,
-	},
+	
 });
 
 export default auth;
