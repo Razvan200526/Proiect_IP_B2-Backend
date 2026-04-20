@@ -2,13 +2,13 @@ import { betterAuth } from "better-auth";
 import { emailOTP, openAPI } from "better-auth/plugins"
 import { db } from "./db";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { DevMailer } from "./mailers/dev.mailer";
-import { ProdMailer } from "./mailers/prod.mailer";
 import * as schema from "./db/auth-schema";
+import { getMailer } from "./mailers";
+const mailer = getMailer();
+import { verifyEmailTemplate } from "./mailers/templates/verifyEmail";
+import { signInTemplate } from "./mailers/templates/signIn";
+import { resetPasswordTemplate } from "./mailers/templates/resetPassword";
 
-const mailer = process.env.NODE_ENV === "production" 
-  ? new ProdMailer() 
-  : new DevMailer();
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -28,13 +28,8 @@ export const auth = betterAuth({
 
   advanced: {
     crossSubDomainCookies: { enabled: true },
-    trustedProxies: ["127.0.0.1", "::1"],
-    trustedOrigins: [
-      "http://localhost:3001",
-      "http://localhost:5173",
-      "http://127.0.0.1:3001",
-      "http://127.0.0.1:5173"
-    ],
+    trustedProxies: (process.env.TRUSTED_PROXIES ?? "").split(","),
+    trustedOrigins: (process.env.TRUSTED_ORIGINS ?? "").split(","),
     cookiePrefix: "my-app",
     useSecureCookies: false,
     cookies: {
@@ -75,11 +70,23 @@ export const auth = betterAuth({
       async sendVerificationOTP({ email, otp, type }) {
         try {
           if (type === "email-verification") {
-             await mailer.sendVerificationEmail(email, otp);
+             await mailer.send({
+          to: email,
+          subject: "Confirmare cont",
+          html: verifyEmailTemplate(otp, 10),
+        });
           } else if (type === "sign-in") {
-            await mailer.sendSignInEmail(email, otp);
+            await mailer.send({
+          to: email,
+          subject: "Cod autentificare",
+          html: signInTemplate(otp, 10),
+        });
           } else {
-            await mailer.sendResetPasswordEmail(email, otp);
+            await mailer.send({
+          to: email,
+          subject: "Resetare parolă",
+          html: resetPasswordTemplate(otp, 10),
+        });
           }
         } catch (error) {
           console.error("EROARE SMTP:", error);
