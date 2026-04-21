@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 
-import { Controller } from "../utils/Controller";
+import { Controller } from "../utils/controller";
 import { validationMiddleware } from "../validation";
 
 @Controller("/help")
@@ -10,9 +10,6 @@ export class HelpController {
 		.post("/", async (c) => {
 			const body = await c.req.json();
 
-			return c.json({
-				ok: true,
-				body,
-			});
+			return c.json(body);
 		});
 }

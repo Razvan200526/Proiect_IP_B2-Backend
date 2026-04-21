@@ -22,10 +22,7 @@ const createTestApp = (): Hono => {
 
 	app.use("*", validationMiddleware).post("/help", async (context) => {
 		const body = await context.req.json();
-		return context.json({
-			ok: true,
-			body,
-		});
+		return context.json(body);
 	});
 
 	return app;
@@ -44,10 +41,7 @@ describe("validationMiddleware", () => {
 		});
 
 		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({
-			ok: true,
-			body: validPayload,
-		});
+		expect(await response.json()).toEqual(validPayload);
 	});
 
 	it("returns 400 for missing required fields", async () => {
@@ -224,6 +218,53 @@ describe("validationMiddleware", () => {
 					message: "Safety notes is required",
 				},
 			],
+		});
+	});
+
+	it("returns 400 for a null body", async () => {
+		const app = createTestApp();
+
+		const response = await app.request("http://localhost/help", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: "null",
+		});
+
+		expect(response.status).toBe(400);
+		expect(await response.json()).toEqual({
+			errors: [
+				{
+					field: "body",
+					message: "Request body is required",
+				},
+			],
+		});
+	});
+
+	it("does not add extra fields to the handler response", async () => {
+		const app = new Hono();
+
+		app.use("*", validationMiddleware).post("/help", (context) =>
+			context.json({
+				id: "req_123",
+				created: true,
+			}),
+		);
+
+		const response = await app.request("http://localhost/help", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(validPayload),
+		});
+
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({
+			id: "req_123",
+			created: true,
 		});
 	});
 });
