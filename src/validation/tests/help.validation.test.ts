@@ -1,7 +1,22 @@
 import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
+import type { ValidationErrorResponse } from "../types/validation.types";
 
-const validPayload = {
+type HelpSuccessPayload = {
+	title: string;
+	description: string;
+	urgency: string;
+	status: string;
+	anonymousMode: boolean;
+	category: string;
+	requestDetails: {
+		notes: string;
+		languageNeeded: string;
+		safetyNotes: string;
+	};
+};
+
+const validPayload: HelpSuccessPayload = {
 	title: "Need transport support",
 	description: "I need a ride to the clinic tomorrow morning.",
 	urgency: "HIGH",
@@ -35,7 +50,8 @@ describe("HelpController validation integration", () => {
 			body: "null",
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as ValidationErrorResponse &
+			Record<string, unknown>;
 
 		expect(response.status).toBe(400);
 		expect(payload).toEqual({
@@ -61,7 +77,8 @@ describe("HelpController validation integration", () => {
 			body: JSON.stringify({}),
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as ValidationErrorResponse &
+			Record<string, unknown>;
 
 		expect(response.status).toBe(400);
 		expect(payload).toEqual({
@@ -90,7 +107,8 @@ describe("HelpController validation integration", () => {
 			}),
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as ValidationErrorResponse &
+			Record<string, unknown>;
 
 		expect(response.status).toBe(400);
 		expect(payload.errors).toBeArray();
@@ -157,7 +175,8 @@ describe("HelpController validation integration", () => {
 			}),
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as ValidationErrorResponse &
+			Record<string, unknown>;
 
 		expect(response.status).toBe(400);
 		expect(payload.errors).toEqual([
@@ -214,7 +233,8 @@ describe("HelpController validation integration", () => {
 			body: JSON.stringify(validPayload),
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as HelpSuccessPayload &
+			Record<string, unknown>;
 
 		expect(response.status).toBe(200);
 		expect(payload).toEqual(validPayload);
@@ -235,11 +255,15 @@ describe("HelpController validation integration", () => {
 			body: JSON.stringify(validPayload),
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as HelpSuccessPayload &
+			Record<string, unknown>;
+		const wrappedBody = payload["body"] as
+			| { body?: unknown }
+			| undefined;
 
 		expect(response.status).toBe(200);
 		expect("body" in payload).toBe(false);
-		expect(payload.body?.body).toBeUndefined();
+		expect(wrappedBody?.body).toBeUndefined();
 		expect(payload.ok).toBeUndefined();
 	});
 });

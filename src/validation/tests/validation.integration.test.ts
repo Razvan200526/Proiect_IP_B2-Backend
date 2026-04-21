@@ -2,6 +2,12 @@ import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
 
 import { validationMiddleware } from "../middleware/validationMiddleware";
+import type { ValidationErrorResponse } from "../types/validation.types";
+
+type MiddlewareSuccessPayload = {
+	id: string;
+	received: boolean;
+};
 
 const validPayload = {
 	title: "Need transport support",
@@ -46,7 +52,8 @@ describe("validation middleware integration", () => {
 			}),
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as ValidationErrorResponse &
+			Record<string, unknown>;
 
 		expect(response.status).toBe(400);
 		expect(payload.errors).toBeArray();
@@ -72,7 +79,8 @@ describe("validation middleware integration", () => {
 			body: JSON.stringify(validPayload),
 		});
 
-		const payload = await response.json();
+		const payload = (await response.json()) as MiddlewareSuccessPayload &
+			Record<string, unknown>;
 
 		expect(response.status).toBe(200);
 		expect(payload).toEqual({
