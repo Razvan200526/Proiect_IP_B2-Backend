@@ -21,5 +21,4 @@
 		"moduleResolution": "bundler",
 		"allowImportingTsExtensions": false
 	},
-	"include": ["src/*"]
 }
