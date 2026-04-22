@@ -1,6 +1,6 @@
 import { eq, and, count as drizzleCount } from "drizzle-orm";
 import { db } from "../";
-import { helpRequests } from "../requests";
+import { helpRequests, requestDetails  } from "../requests";    //requestDetails e modificarea
 import { IRepository } from "../repositories/base.repository";
 
 export type HelpRequest = typeof helpRequests.$inferSelect;
@@ -83,6 +83,29 @@ export class HelpRequestRepository
             .from(helpRequests);
         return value;
     }
+
+    //modificarea mea
+    async findAllPaginated(page: number, size: number) {
+      // 1. Calculăm offset-ul
+      const offset = page * size;
+
+      // 2. Extragem datele cu leftJoin
+      const data = await db
+          .select()
+          .from(helpRequests)
+          .leftJoin(requestDetails, eq(helpRequests.id, requestDetails.helpRequestId))
+          .limit(size)
+          .offset(offset);
+
+      // 3. Numărăm totalul folosind drizzleCount
+      const [totalRes] = await db
+          .select({ value: drizzleCount() })
+          .from(helpRequests);
+          
+      const totalElements = Number(totalRes.value);
+
+      return { data, totalElements };
+  }
 }
 
 export const helpRequestRepository = new HelpRequestRepository();
