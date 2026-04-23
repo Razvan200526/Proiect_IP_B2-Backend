@@ -1,22 +1,23 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { helpRequestRepository } from "../../src/db/repositories/helpRequests.repository";
-import { helpRequestService } from "../../src/services/HelpRequestService";
+import { helpRequestRepository } from "../../src/db/repositories/helpRequest.repository";
+import { requestDetailsRepository } from "../../src/db/repositories/requestDetails.repository";
+import { requestDetailsService } from "../../src/services/RequestDetailsService";
 
-describe("HelpRequestService.deleteHelpRequestDetails", () => {
+describe("RequestDetailsService.deleteHelpRequestDetails", () => {
   const originalFindById = helpRequestRepository.findById;
-  const originalFindDetailsByHelpRequestId = helpRequestRepository.findDetailsByHelpRequestId;
-  const originalDeleteDetailsByHelpRequestId = helpRequestRepository.deleteDetailsByHelpRequestId;
+  const originalFindByHelpRequestId = requestDetailsRepository.findByHelpRequestId;
+  const originalDeleteByHelpRequestId = requestDetailsRepository.deleteByHelpRequestId;
 
   beforeEach(() => {
     helpRequestRepository.findById = originalFindById;
-    helpRequestRepository.findDetailsByHelpRequestId = originalFindDetailsByHelpRequestId;
-    helpRequestRepository.deleteDetailsByHelpRequestId = originalDeleteDetailsByHelpRequestId;
+    requestDetailsRepository.findByHelpRequestId = originalFindByHelpRequestId;
+    requestDetailsRepository.deleteByHelpRequestId = originalDeleteByHelpRequestId;
   });
 
   test("returns 404 when task does not exist", async () => {
     helpRequestRepository.findById = async () => undefined;
 
-    const result = await helpRequestService.deleteHelpRequestDetails(123);
+    const result = await requestDetailsService.deleteHelpRequestDetails(123);
 
     expect(result).toEqual({
       status: 404,
@@ -31,7 +32,7 @@ describe("HelpRequestService.deleteHelpRequestDetails", () => {
         status: "MATCHED",
       }) as Awaited<ReturnType<typeof originalFindById>>;
 
-    const result = await helpRequestService.deleteHelpRequestDetails(10);
+    const result = await requestDetailsService.deleteHelpRequestDetails(10);
 
     expect(result).toEqual({
       status: 409,
@@ -47,9 +48,9 @@ describe("HelpRequestService.deleteHelpRequestDetails", () => {
         id: 11,
         status: "OPEN",
       }) as Awaited<ReturnType<typeof originalFindById>>;
-    helpRequestRepository.findDetailsByHelpRequestId = async () => undefined;
+    requestDetailsRepository.findByHelpRequestId = async () => undefined;
 
-    const result = await helpRequestService.deleteHelpRequestDetails(11);
+    const result = await requestDetailsService.deleteHelpRequestDetails(11);
 
     expect(result).toEqual({
       status: 409,
@@ -65,17 +66,17 @@ describe("HelpRequestService.deleteHelpRequestDetails", () => {
         id: 12,
         status: "OPEN",
       }) as Awaited<ReturnType<typeof originalFindById>>;
-    helpRequestRepository.findDetailsByHelpRequestId = async () =>
+    requestDetailsRepository.findByHelpRequestId = async () =>
       ({
         id: 99,
         helpRequestId: 12,
-      }) as Awaited<ReturnType<typeof originalFindDetailsByHelpRequestId>>;
-    helpRequestRepository.deleteDetailsByHelpRequestId = async (id: number) => {
+      }) as Awaited<ReturnType<typeof originalFindByHelpRequestId>>;
+    requestDetailsRepository.deleteByHelpRequestId = async (id: number) => {
       deletedId = id;
       return true;
     };
 
-    const result = await helpRequestService.deleteHelpRequestDetails(12);
+    const result = await requestDetailsService.deleteHelpRequestDetails(12);
 
     expect(result).toEqual({
       status: 204,
