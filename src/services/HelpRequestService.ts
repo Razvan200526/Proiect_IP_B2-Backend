@@ -1,48 +1,74 @@
-import { helpRequestRepository, type CreateHelpRequestDTO } from "../db/repositories/helpRequests.repository";
+import {
+    HelpRequestRepository,
+    type CreateHelpRequestDTO,
+    type HelpRequest,
+} from "../db/repositories/helpRequests.repository";
+import {inject} from "../di";
+import {Service} from "../di/decorators/service";
+import type {requestStatusEnum} from "../db/enums";
+import {InvalidStatusTransitionError, NotFoundError} from "../utils/Errors";
 
+// State machine
+type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
+
+const VALID_TRANSITIONS: Partial<Record<RequestStatus, RequestStatus[]>> = {
+    OPEN: ["MATCHED", "CANCELLED"],
+    MATCHED: ["IN_PROGRESS", "CANCELLED", "REJECTED"],
+    IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+};
+
+@Service()
 export class HelpRequestService {
-  async createHelpRequest(data: CreateHelpRequestDTO) {
-    try {
-      return await helpRequestRepository.create({
-        ...data,
-        status: "OPEN",
-      });
-    } catch (error) {
-      console.error("Failed to create help request:", error);
-      throw new Error("Could not create help request");
-    }
-  }
-    async getHelpRequestById(id: number) {
-    return await helpRequestRepository.findById(id);
+	constructor(
+		@inject(HelpRequestRepository)
+		private readonly helpRequestRepo: HelpRequestRepository,
+	) {}
+	async createHelpRequest(data: CreateHelpRequestDTO) {
+		try {
+			return await this.helpRequestRepo.create({
+				...data,
+				status: "OPEN",
+			});
+		} catch (error) {
+			console.error("Failed to create help request:", error);
+			throw new Error("Could not create help request");
+		}
+	}
+
+
+  async getHelpRequestById(id: number) {
+    return await this.helpRequestRepo.findById(id);
   }
   
-  //aici este modificarea mea
-  async getAllPaginated(page: number, size: number) {
-    // 1. Cerem datele de la repository
-    const { data, totalElements } = await helpRequestRepository.findAllPaginated(page, size);
+   
 
-    // 2. Calculăm numărul total de pagini
-    const totalPages = Math.ceil(totalElements / size);
+    /**
+     * Updates a HelpRequest status according to the allowed transitions
+     * @param id - The UUID of the HelpRequest to update
+     * @param newStatus - The target status to transition to
+     * @returns The updated HelpRequest object
+     * @throws {NotFoundError} If the HelpRequest is not found (404)
+     * @throws {InvalidStatusTransitionError} If the transition is forbidden (400)
+     */
+    async updateHelpRequestStatus(id: number, newStatus: RequestStatus): Promise<HelpRequest> {
+        const current = await this.helpRequestRepo.findById(id);
+        if (!current) {
+            throw new NotFoundError("HelpRequest", String(id));
+        }
 
-    // 3. Formatăm datele. Drizzle ne dă un obiect cu { helpRequests: {...}, requestDetails: {...} }
-    // Noi vrem să le combinăm, astfel încât requestDetails să fie înăuntrul task-ului.
-    const items = data.map((row) => ({
-      ...row.help_requests,
-      requestDetails: row.request_details, // Dacă nu are detalii, va fi null (exact cum cere task-ul)
-    }));
+        const currentStatus = current.status;
+        const allowedNext = VALID_TRANSITIONS[currentStatus];
 
-    // 4. Returnăm structura finală pe care o va trimite Controller-ul
-    return {
-      items,
-      metadata: {
-        totalElements,
-        totalPages,
-        currentPage: page,
-        pageSize: size,
-      },
-    };
-  }
+        if (!allowedNext?.includes(newStatus)) {
+            throw new InvalidStatusTransitionError(currentStatus, newStatus);
+        }
 
+        const updated = await this.helpRequestRepo.updateStatus(id, newStatus);
+        if (!updated) {
+            throw new NotFoundError("HelpRequest", String(id));
+        }
+
+        return updated;
+
+    }
 }
-
-export const helpRequestService = new HelpRequestService();

@@ -1,87 +1,102 @@
 import { Hono } from "hono";
 import { Controller } from "../utils/controller";
-import { helpRequestService } from "../services/HelpRequestService";
+import { inject } from "../di";
+import { HelpRequestService } from "../services/HelpRequestService";
+import { requestStatusEnum } from "../db/enums";
+import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
+
+
+type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
+
+const VALID_STATUSES = new Set<RequestStatus>(requestStatusEnum.enumValues);
 
 @Controller("/tasks")
 export class HelpRequestController {
-  static controller = new Hono()
-    .post("/", async (c) => {
-      try {
-        const body = await c.req.json();
-        const result = await helpRequestService.createHelpRequest(body);
-        return c.json(result, 201);
-      } catch (error) {
-        return c.json({ message: "Internal server error" }, 500);
-      }
-    })
-    
-    //modificari
-    .get("/", async (c) => {
-    try {
-      // 1. Citim parametrii din URL (ex: ?page=1&size=5)
-      const pageQuery = c.req.query("page");
-      const sizeQuery = c.req.query("size");
+	constructor(
+		@inject(HelpRequestService)
+		private readonly helpRequestService: HelpRequestService,
+	) {}
 
-      // 2. Aplicăm valorile implicite (exact cum cere checklist-ul: page 0, size 10)
-      const page = pageQuery !== undefined ? parseInt(pageQuery, 10) : 0;
-      const size = sizeQuery !== undefined ? parseInt(sizeQuery, 10) : 10;
+	controller = new Hono().post("/", async (c) => {
+		try {
+			const body = await c.req.json();
+			const result = await this.helpRequestService.createHelpRequest(body);
+			return c.json(result, 201);
+		} catch {
+			return c.json({ message: "Internal server error" }, 500);
+		}
+	})
 
-      // 3. Validare: returnăm 400 dacă primesc text în loc de numere sau numere negative
-      if (isNaN(page) || isNaN(size) || page < 0 || size <= 0) {
-        return c.json({ 
-          success: false, 
-          message: "Parametrii 'page' sau 'size' sunt invalizi. Trebuie sa fie numere pozitive." 
-        }, 400);
-      }
-
-      // 4. Apelăm Service-ul pe care tocmai l-ai creat
-      const result = await helpRequestService.getAllPaginated(page, size);
-
-      // 5. Returnăm status 200 cu lista și metadatele (chiar și dacă e goală, returnează 200)
-      return c.json({
-        success: true,
-        ...result
-      }, 200);
-
-    } catch (error) {
-      // 6. Prindem erorile interne FĂRĂ să expunem detalii (cum cere checklist-ul)
-      console.error("Eroare la paginare:", error);
-      return c.json({ success: false, message: "Eroare interna a serverului." }, 500);
-    }
-  })
-
-
-
-
-
+   
 
     .get("/:id", async (c) => {
-      const idParam = c.req.param("id");
-      const requestedId = parseInt(idParam, 10);
-
-      if (Number.isNaN(requestedId)) {
-        return c.json(
-          { success: false, message: "Eroare: ID-ul furnizat trebuie sa fie un numar." },
-          400
-        );
-      }
-
       try {
-        const foundTask = await helpRequestService.getHelpRequestById(requestedId);
+        const idParam = c.req.param("id");
+        const requestedId = Number(idParam);
 
-        if (!foundTask) {
+      
+        if (!Number.isInteger(requestedId) || requestedId <= 0 || requestedId > Number.MAX_SAFE_INTEGER) {
           return c.json(
-            { success: false, message: `Eroare: Task-ul cu ID-ul '${idParam}' nu a fost gasit` },
+            { message: "Eroare: ID-ul furnizat este invalid. Trebuie sa fie un numar intreg pozitiv." },
+            400
+          );
+        }
+
+        
+        const foundTask = await this.helpRequestService.getHelpRequestById(requestedId);
+
+        
+        if (!foundTask || (Array.isArray(foundTask) && foundTask.length === 0)) {
+          return c.json(
+            { message: `Eroare: Task-ul cu ID-ul '${requestedId}' nu exista in sistem.` },
             404
           );
         }
 
-        return c.json({ success: true, data: foundTask }, 200);
+        const dataToReturn = Array.isArray(foundTask) ? foundTask[0] : foundTask;
+        return c.json(dataToReturn , 200);
+
       } catch (error) {
-        console.error("Eroare interna de server:", error);
-        return c.json({ success: false, message: "Eroare interna a serverului." }, 500);
+        console.error(`Eroare critica la GET /tasks/${c.req.param("id")} :`, error);
+        return c.json(
+          { message: "Eroare interna a serverului. Va rugam incercati mai tarziu." },
+          500
+        );
+      }
+    })
+
+    .post("/:id/status", async (c) => {
+      const requestId = Number(c.req.param("id"));
+      if (!Number.isInteger(requestId)) {
+        return c.json({ message: "'id' must be a valid numeric request identifier" }, 400);
+      }
+
+      let body: { status?: unknown };
+      try {
+        body = await c.req.json();
+      } catch {
+        return c.json({ message: "Request body must be valid JSON" }, 400);
+      }
+
+      const { status } = body;
+
+      if (typeof status !== "string" || !VALID_STATUSES.has(status as RequestStatus)) {
+        return c.json({ message: `'status' must be one of: ${[...VALID_STATUSES].join(", ")}` }, 400);
+      }
+
+      try {
+        const updated = await this.helpRequestService.updateHelpRequestStatus(requestId, status as RequestStatus);
+        return c.json(updated, 200);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return c.json({ message: error.message }, 404);
+        }
+
+        if (error instanceof InvalidStatusTransitionError) {
+          return c.json({ message: error.message }, 400);
+        }
+
+        throw error;
       }
     });
-
-
 }
