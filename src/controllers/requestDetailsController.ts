@@ -15,6 +15,7 @@ export class RequestDetailsController {
 
       return c.json(result.body, result.status);
     } catch (error) {
+      console.error(error);
       return c.json({ message: "Internal server error" }, 500);
     }
   });

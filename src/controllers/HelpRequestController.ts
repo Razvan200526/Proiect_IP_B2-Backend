@@ -11,6 +11,7 @@ export class HelpRequestController {
         const result = await helpRequestService.createHelpRequest(body);
         return c.json(result, 201);
       } catch (error) {
+        console.error(error);
         return c.json({ message: "Internal server error" }, 500);
       }
     });
