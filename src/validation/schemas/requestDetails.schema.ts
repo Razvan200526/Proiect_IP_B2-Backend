@@ -19,7 +19,7 @@ export const requestDetailsSchema = z.object({
 		})
 		.trim()
 		.min(1, "Safety notes is required"),
-});
+}).strict();
 
 export const RequestDetailsSchema = requestDetailsSchema;
 export type RequestDetailsInput = z.infer<typeof requestDetailsSchema>;
