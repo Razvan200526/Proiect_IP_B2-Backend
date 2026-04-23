@@ -26,6 +26,45 @@ export class HelpRequestController {
 			return c.json({ message: "Internal server error" }, 500);
 		}
 	})
+
+   
+
+    .get("/:id", async (c) => {
+      try {
+        const idParam = c.req.param("id");
+        const requestedId = Number(idParam);
+
+      
+        if (!Number.isInteger(requestedId) || requestedId <= 0 || requestedId > Number.MAX_SAFE_INTEGER) {
+          return c.json(
+            { message: "Eroare: ID-ul furnizat este invalid. Trebuie sa fie un numar intreg pozitiv." },
+            400
+          );
+        }
+
+        
+        const foundTask = await this.helpRequestService.getHelpRequestById(requestedId);
+
+        
+        if (!foundTask || (Array.isArray(foundTask) && foundTask.length === 0)) {
+          return c.json(
+            { message: `Eroare: Task-ul cu ID-ul '${requestedId}' nu exista in sistem.` },
+            404
+          );
+        }
+
+        const dataToReturn = Array.isArray(foundTask) ? foundTask[0] : foundTask;
+        return c.json(dataToReturn , 200);
+
+      } catch (error) {
+        console.error(`Eroare critica la GET /tasks/${c.req.param("id")} :`, error);
+        return c.json(
+          { message: "Eroare interna a serverului. Va rugam incercati mai tarziu." },
+          500
+        );
+      }
+    })
+
     .post("/:id/status", async (c) => {
       const requestId = Number(c.req.param("id"));
       if (!Number.isInteger(requestId)) {
