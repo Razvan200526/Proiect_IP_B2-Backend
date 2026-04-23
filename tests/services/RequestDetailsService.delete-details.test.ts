@@ -1,22 +1,42 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { helpRequestRepository } from "../../src/db/repositories/helpRequest.repository";
-import { requestDetailsRepository } from "../../src/db/repositories/requestDetails.repository";
-import { requestDetailsService } from "../../src/services/RequestDetailsService";
+import { RequestDetailsService } from "../../src/services/RequestDetailsService";
 
 describe("RequestDetailsService.deleteHelpRequestDetails", () => {
-  const originalFindById = helpRequestRepository.findById;
-  const originalFindByHelpRequestId = requestDetailsRepository.findByHelpRequestId;
-  const originalDeleteByHelpRequestId = requestDetailsRepository.deleteByHelpRequestId;
+  let helpRequestRepository: {
+    findById: (id: number) => Promise<{ id: number; status: string } | undefined>;
+  };
+  let requestDetailsRepository: {
+    findByHelpRequestId: (id: number) => Promise<{ id: number; helpRequestId: number } | undefined>;
+    deleteByHelpRequestId: (id: number) => Promise<boolean>;
+  };
+  let requestDetailsService: RequestDetailsService;
 
   beforeEach(() => {
-    helpRequestRepository.findById = originalFindById;
-    requestDetailsRepository.findByHelpRequestId = originalFindByHelpRequestId;
-    requestDetailsRepository.deleteByHelpRequestId = originalDeleteByHelpRequestId;
+    helpRequestRepository = {
+      findById: async () => undefined,
+    };
+
+    requestDetailsRepository = {
+      findByHelpRequestId: async () => undefined,
+      deleteByHelpRequestId: async () => false,
+    };
+
+    requestDetailsService = new RequestDetailsService();
+    (
+      requestDetailsService as RequestDetailsService & {
+        getHelpRequestRepository: () => Promise<typeof helpRequestRepository>;
+        getRequestDetailsRepository: () => Promise<typeof requestDetailsRepository>;
+      }
+    ).getHelpRequestRepository = async () => helpRequestRepository;
+    (
+      requestDetailsService as RequestDetailsService & {
+        getHelpRequestRepository: () => Promise<typeof helpRequestRepository>;
+        getRequestDetailsRepository: () => Promise<typeof requestDetailsRepository>;
+      }
+    ).getRequestDetailsRepository = async () => requestDetailsRepository;
   });
 
   test("returns 404 when task does not exist", async () => {
-    helpRequestRepository.findById = async () => undefined;
-
     const result = await requestDetailsService.deleteHelpRequestDetails(123);
 
     expect(result).toEqual({
@@ -30,7 +50,7 @@ describe("RequestDetailsService.deleteHelpRequestDetails", () => {
       ({
         id: 10,
         status: "MATCHED",
-      }) as Awaited<ReturnType<typeof originalFindById>>;
+      });
 
     const result = await requestDetailsService.deleteHelpRequestDetails(10);
 
@@ -47,7 +67,7 @@ describe("RequestDetailsService.deleteHelpRequestDetails", () => {
       ({
         id: 11,
         status: "OPEN",
-      }) as Awaited<ReturnType<typeof originalFindById>>;
+      });
     requestDetailsRepository.findByHelpRequestId = async () => undefined;
 
     const result = await requestDetailsService.deleteHelpRequestDetails(11);
@@ -65,12 +85,12 @@ describe("RequestDetailsService.deleteHelpRequestDetails", () => {
       ({
         id: 12,
         status: "OPEN",
-      }) as Awaited<ReturnType<typeof originalFindById>>;
+      });
     requestDetailsRepository.findByHelpRequestId = async () =>
       ({
         id: 99,
         helpRequestId: 12,
-      }) as Awaited<ReturnType<typeof originalFindByHelpRequestId>>;
+      });
     requestDetailsRepository.deleteByHelpRequestId = async (id: number) => {
       deletedId = id;
       return true;

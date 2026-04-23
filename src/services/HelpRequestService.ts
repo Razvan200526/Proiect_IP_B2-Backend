@@ -1,3 +1,4 @@
+import { Service } from "../di/decorators/service";
 import {
 	type CreateHelpRequestDTO,
 	helpRequestRepository,
@@ -12,6 +13,7 @@ type DeleteHelpRequestDetailsResponse =
 			body: { error: string };
 	  };
 
+@Service()
 export class HelpRequestService {
 	async createHelpRequest(data: CreateHelpRequestDTO) {
 		try {

@@ -1,5 +1,13 @@
-import { helpRequestRepository } from "../db/repositories/helpRequest.repository";
-import { requestDetailsRepository } from "../db/repositories/requestDetails.repository";
+import { Service } from "../di/decorators/service";
+
+type HelpRequestRepositoryLike = {
+  findById: (id: number) => Promise<{ status: string } | undefined>;
+};
+
+type RequestDetailsRepositoryLike = {
+  findByHelpRequestId: (id: number) => Promise<unknown | undefined>;
+  deleteByHelpRequestId: (id: number) => Promise<boolean>;
+};
 
 type DeleteRequestDetailsResponse =
   | {
@@ -10,8 +18,21 @@ type DeleteRequestDetailsResponse =
       body: { error: string };
     };
 
+@Service()
 export class RequestDetailsService {
+  protected async getHelpRequestRepository(): Promise<HelpRequestRepositoryLike> {
+    const { helpRequestRepository } = await import("../db/repositories/helpRequest.repository");
+    return helpRequestRepository;
+  }
+
+  protected async getRequestDetailsRepository(): Promise<RequestDetailsRepositoryLike> {
+    const { requestDetailsRepository } = await import("../db/repositories/requestDetails.repository");
+    return requestDetailsRepository;
+  }
+
   async deleteHelpRequestDetails(id: number): Promise<DeleteRequestDetailsResponse> {
+    const helpRequestRepository = await this.getHelpRequestRepository();
+    const requestDetailsRepository = await this.getRequestDetailsRepository();
     const task = await helpRequestRepository.findById(id);
 
     if (!task) {

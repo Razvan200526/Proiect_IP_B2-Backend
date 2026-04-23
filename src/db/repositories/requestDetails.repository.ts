@@ -1,7 +1,9 @@
+import { repository } from "../../di/decorators/repository";
 import { eq } from "drizzle-orm";
 import { db } from "../";
 import { requestDetails } from "../requests";
 
+@repository()
 export class RequestDetailsRepository {
     async findByHelpRequestId(
         helpRequestId: number,
