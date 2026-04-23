@@ -29,20 +29,20 @@ export class HelpRequestController {
     .post("/:id/status", async (c) => {
       const requestId = Number(c.req.param("id"));
       if (!Number.isInteger(requestId)) {
-        return c.json({ error: "'id' must be a valid numeric request identifier" }, 400);
+        return c.json({ message: "'id' must be a valid numeric request identifier" }, 400);
       }
 
       let body: { status?: unknown };
       try {
         body = await c.req.json();
       } catch {
-        return c.json({ error: "Request body must be valid JSON" }, 400);
+        return c.json({ message: "Request body must be valid JSON" }, 400);
       }
 
       const { status } = body;
 
       if (typeof status !== "string" || !VALID_STATUSES.has(status as RequestStatus)) {
-        return c.json({ error: `'status' must be one of: ${[...VALID_STATUSES].join(", ")}` }, 400);
+        return c.json({ message: `'status' must be one of: ${[...VALID_STATUSES].join(", ")}` }, 400);
       }
 
       try {
@@ -50,11 +50,11 @@ export class HelpRequestController {
         return c.json(updated, 200);
       } catch (error) {
         if (error instanceof NotFoundError) {
-          return c.json({ error: error.message }, 404);
+          return c.json({ message: error.message }, 404);
         }
 
         if (error instanceof InvalidStatusTransitionError) {
-          return c.json({ error: error.message }, 400);
+          return c.json({ message: error.message }, 400);
         }
 
         throw error;

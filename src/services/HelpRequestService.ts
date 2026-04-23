@@ -5,7 +5,7 @@ import {
 } from "../db/repositories/helpRequests.repository";
 import { inject } from "../di";
 import { Service } from "../di/decorators/service";
-import { requestStatusEnum } from "../db/enums";
+import type { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 
 // State machine

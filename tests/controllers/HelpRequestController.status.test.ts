@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { Hono } from "hono";
-import {InvalidStatusTransitionError} from "../../src/utils/Errors";
+import { HelpRequestService } from "../../src/services/HelpRequestService";
+
+const Controller = () => (_target: unknown) => {};
 
 mock.module("../../src/utils/controller", () => ({
-    Controller: () => (_target: unknown) => {},
+  Controller,
 }));
 //trebuie neparat dupa mock)
 const { HelpRequestController } = await import(
     "../../src/controllers/HelpRequestController"
-    );
+);
 
 type RequestStatus =
     | "OPEN"
@@ -20,37 +22,40 @@ type RequestStatus =
 
 type Task = { id: number; status: RequestStatus };
 
-class InMemoryHelpRequestRepo {
-    private readonly store = new Map<number, Task>();
+let store = new Map<number, Task>();
 
-    seed(task: Task) {
-        this.store.set(task.id, { ...task });
-    }
+const seed = (task: Task) => {
+  store.set(task.id, { ...task });
+};
 
-    async findById(id: number): Promise<Task | undefined> {
-        const found = this.store.get(id);
+const repo = new Proxy({}, {
+  get: (_target, property) => {
+    if (property === "findById") {
+      return async (id: number): Promise<Task | undefined> => {
+        const found = store.get(id);
         return found ? { ...found } : undefined;
+      };
     }
 
-    async updateStatus(
+    if (property === "updateStatus") {
+      return async (
         id: number,
         newStatus: RequestStatus,
-    ): Promise<Task | undefined> {
-        const current = this.store.get(id);
+      ): Promise<Task | undefined> => {
+        const current = store.get(id);
         if (!current) return undefined;
         const updated = { ...current, status: newStatus };
-        this.store.set(id, updated);
+        store.set(id, updated);
         return { ...updated };
+      };
     }
 
-    async create(data: any) {
-        return data;
-    }
-}
+    return undefined;
+  },
+});
 
 describe("POST /tasks/:id/status", () => {
     let app: Hono;
-    let repo: InMemoryHelpRequestRepo;
 
     const postStatus = (id: number, status: RequestStatus) =>
         app.request(`http://localhost/tasks/${id}/status`, {
@@ -60,41 +65,17 @@ describe("POST /tasks/:id/status", () => {
         });
 
     beforeEach(() => {
-        repo = new InMemoryHelpRequestRepo();
+        store = new Map<number, Task>();
 
-        //definim un serviciu fals
-        const fakeService = {
-            createHelpRequest: async (data: unknown) => data,
-            updateHelpRequestStatus: async (id: number, status: RequestStatus) => {
-                const current = await repo.findById(id);
-                // Simulăm comportamentul serviciului tău real
-                if (!current) throw new Error(`Task ${id} not found`);
-
-                const validTransitions: Record<RequestStatus, RequestStatus[]> = {
-                    OPEN: ["MATCHED"],
-                    MATCHED: ["IN_PROGRESS", "CANCELLED", "REJECTED"],
-                    IN_PROGRESS: ["COMPLETED", "CANCELLED"],
-                    COMPLETED: [],
-                    CANCELLED: [],
-                    REJECTED: [],
-                };
-
-                if (!validTransitions[current.status].includes(status)) {
-                    throw new InvalidStatusTransitionError(current.status, status);
-                }
-
-                return await repo.updateStatus(id, status);
-            },
-        };
-
-        const controller = new HelpRequestController(fakeService as any);
+        const service = new HelpRequestService(repo as any);
+        const controller = new HelpRequestController(service as any);
 
         app = new Hono();
         app.route("/tasks", controller.controller);
     });
 
     test("200 - valid Open -> Claimed (OPEN -> MATCHED)", async () => {
-        repo.seed({ id: 10, status: "OPEN" });
+		seed({ id: 10, status: "OPEN" });
 
         const response = await postStatus(10, "MATCHED");
         const body = await response.json();
@@ -102,12 +83,12 @@ describe("POST /tasks/:id/status", () => {
         expect(response.status).toBe(200);
         expect(body).toMatchObject({ id: 10, status: "MATCHED" });
 
-        const fromDb = await repo.findById(10);
+		const fromDb = store.get(10);
         expect(fromDb?.status).toBe("MATCHED");
     });
 
     test("200 - valid Claimed -> Done (echivalent flux actual: IN_PROGRESS -> COMPLETED)", async () => {
-        repo.seed({ id: 11, status: "IN_PROGRESS" });
+		seed({ id: 11, status: "IN_PROGRESS" });
 
         const response = await postStatus(11, "COMPLETED");
         const body = await response.json();
@@ -115,12 +96,12 @@ describe("POST /tasks/:id/status", () => {
         expect(response.status).toBe(200);
         expect(body).toMatchObject({ id: 11, status: "COMPLETED" });
 
-        const fromDb = await repo.findById(11);
+		const fromDb = store.get(11);
         expect(fromDb?.status).toBe("COMPLETED");
     });
 
     test("400 - invalid Open -> Done (OPEN -> COMPLETED) cu mesaj explicit", async () => {
-        repo.seed({ id: 12, status: "OPEN" });
+		seed({ id: 12, status: "OPEN" });
 
         const response = await postStatus(12, "COMPLETED");
         const body = await response.json();
@@ -128,25 +109,36 @@ describe("POST /tasks/:id/status", () => {
         expect(response.status).toBe(400);
         //trimitem neaparat eroarea mai departe
         expect(body).toEqual({
-            error: "Invalid transition from OPEN to COMPLETED",
+            message: "Invalid transition from OPEN to COMPLETED",
         });
 
-        const unchanged = await repo.findById(12);
+		const unchanged = store.get(12);
         expect(unchanged?.status).toBe("OPEN");
     });
 
     test("400 - invalid Done -> Claimed (COMPLETED -> MATCHED) cu mesaj explicit", async () => {
-        repo.seed({ id: 13, status: "COMPLETED" });
+		seed({ id: 13, status: "COMPLETED" });
 
         const response = await postStatus(13, "MATCHED");
         const body = await response.json();
 
         expect(response.status).toBe(400);
         expect(body).toEqual({
-            error: "Invalid transition from COMPLETED to MATCHED",
+            message: "Invalid transition from COMPLETED to MATCHED",
         });
 
-        const unchanged = await repo.findById(13);
+		const unchanged = store.get(13);
         expect(unchanged?.status).toBe("COMPLETED");
+    });
+
+    test("404 - invalid id / task inexistent", async () => {
+        const response = await postStatus(999, "OPEN");
+
+        const body = await response.json();
+
+        expect(response.status).toBe(404);
+        expect(body).toEqual({
+            message: "HelpRequest with id 999 not found",
+        });
     });
 });

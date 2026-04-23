@@ -2,8 +2,8 @@ import { eq, and, count as drizzleCount } from "drizzle-orm";
 import { db } from "../";
 import { repository } from "../../di/decorators/repository";
 import { helpRequests } from "../requests";
-import type { IRepository } from "../repositories/base.repository";
-import {requestStatusEnum} from "../enums";
+import type { IRepository } from "./base.repository";
+import type {requestStatusEnum} from "../enums";
 
 export type HelpRequest = typeof helpRequests.$inferSelect;
 
