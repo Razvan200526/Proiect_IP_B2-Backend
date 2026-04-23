@@ -1,4 +1,9 @@
-import { helpRequestRepository, type CreateHelpRequestDTO } from "../db/repositories/helpRequests.repository";
+import {
+	HelpRequestRepository,
+	type CreateHelpRequestDTO,
+} from "../db/repositories/helpRequests.repository";
+import { inject } from "../di";
+import { Service } from "../di/decorators/service";
 
 type DeleteHelpRequestDetailsResponse =
   | {

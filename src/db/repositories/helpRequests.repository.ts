@@ -9,6 +9,7 @@ export type CreateHelpRequestDTO = typeof helpRequests.$inferInsert;
 
 export type UpdateHelpRequestDTO = Partial<CreateHelpRequestDTO>;
 
+@repository()
 export class HelpRequestRepository
     implements IRepository<HelpRequest, CreateHelpRequestDTO, UpdateHelpRequestDTO, number> {
     async create(data: CreateHelpRequestDTO): Promise<HelpRequest> {

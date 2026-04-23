@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { Controller } from "../utils/controller";
-import { helpRequestService } from "../services/HelpRequestService";
+import { inject } from "../di";
+import { HelpRequestService } from "../services/HelpRequestService";
 
 @Controller("/tasks")
 export class HelpRequestController {
