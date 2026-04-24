@@ -6,23 +6,32 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import PrettyError from "pretty-error";
 const pe = new PrettyError();
 
-try {
-	const connection = postgres(Bun.env.DATABASE_URL, { max: 1 });
-	const db = drizzle(connection);
+async function main() {
+	try {
+		const connection = postgres(process.env.DATABASE_URL, { max: 1 });
+		const db = drizzle(connection);
 
-	await migrate(db, { migrationsFolder: "drizzle" });
-	await connection.end();
-} catch (error) {
+		await migrate(db, { migrationsFolder: "drizzle" });
+		await connection.end();
+	} catch (error) {
+		if (error instanceof Error) {
+			console.error(pe.render(error));
+		} else {
+			console.log(error);
+		}
+		process.exit(1);
+	}
+
+	console.log(
+		chalk.magentaBright(`${figures.tick} Migrations applied successfully!`),
+	);
+}
+
+main().catch((error) => {
 	if (error instanceof Error) {
 		console.error(pe.render(error));
 	} else {
 		console.log(error);
 	}
 	process.exit(1);
-}
-
-console.log(
-	chalk.magentaBright(`${figures.tick} Migrations applied successfully!`),
-);
-
-process.exit();
+});

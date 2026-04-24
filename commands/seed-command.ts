@@ -15,37 +15,46 @@ const seedSchema = Object.fromEntries(
 	Object.entries(schema).filter(([, value]) => is(value, PgTableEntity)),
 ) as Record<string, PgTable>;
 
-try {
-	// biome-ignore lint/style/noNonNullAssertion: <trust me>
-	const connection = postgres(Bun.env.DATABASE_URL!, { max: 1 });
-	const db = drizzle(connection);
-	const context = createSeedContext();
+async function main() {
+	try {
+		// biome-ignore lint/style/noNonNullAssertion: <trust me>
+		const connection = postgres(process.env.DATABASE_URL!, { max: 1 });
+		const db = drizzle(connection);
+		const context = createSeedContext();
 
-	await reset(db, seedSchema);
-	for (const entitySeed of entitySeeds) {
-		await entitySeed.run(db, context);
-		console.log(
-			chalk.greenBright(
-				`${mainSymbols.tick} ${entitySeed.name.at(0)?.toUpperCase() + entitySeed.name.slice(1)}Seed applied succesfully`,
-			),
-		);
+		await reset(db, seedSchema);
+		for (const entitySeed of entitySeeds) {
+			await entitySeed.run(db, context);
+			console.log(
+				chalk.greenBright(
+					`${mainSymbols.tick} ${entitySeed.name.at(0)?.toUpperCase() + entitySeed.name.slice(1)}Seed applied succesfully`,
+				),
+			);
+		}
+		await connection.end();
+	} catch (error) {
+		if (error instanceof Error) {
+			console.error(pe.render(error));
+
+			const cause = error.cause;
+			if (cause instanceof Error) {
+				console.error(chalk.redBright("Caused by:"));
+				console.error(cause);
+			}
+		} else {
+			console.log(error);
+		}
+		process.exit(1);
 	}
-	await connection.end();
-} catch (error) {
+
+	console.log(chalk.green(`${figures.tick} All seeds applied successfully!`));
+}
+
+main().catch((error) => {
 	if (error instanceof Error) {
 		console.error(pe.render(error));
-
-		const cause = error.cause;
-		if (cause instanceof Error) {
-			console.error(chalk.redBright("Caused by:"));
-			console.error(cause);
-		}
 	} else {
 		console.log(error);
 	}
 	process.exit(1);
-}
-
-console.log(chalk.green(`${figures.tick} All seeds applied successfully!`));
-
-process.exit();
+});
