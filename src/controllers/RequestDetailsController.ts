@@ -53,10 +53,9 @@ export class HelpRequestDetailsController {
                         return c.json({ message: "Task not found" }, 404);
                     }
 
-                    return c.json(result.data, 200);
-                } catch (_error) {
-                    return c.json({ message: "Could not update help request details" }, 500);
-                }
-            }
-        );
+			return c.json(result.data, 200);
+		} catch (_error) {
+			return c.json({ message: "Could not update help request details" }, 500);
+		}
+	});
 }
