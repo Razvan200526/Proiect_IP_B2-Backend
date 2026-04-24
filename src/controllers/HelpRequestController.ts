@@ -164,8 +164,4 @@ export class HelpRequestController {
       }
     });
 
-
-        throw error;
-	      }
-	    });
 }
