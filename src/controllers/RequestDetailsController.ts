@@ -42,7 +42,7 @@ export class HelpRequestDetailsController {
         async (c) => {
             try {
                 const id = Number(c.req.param("id"));
-                if (isNaN(id)) {
+                if (Number.isNaN(id)) {
                     return c.json({ message: "Invalid id" }, 400);
                 }
                 const body = await c.req.json();
