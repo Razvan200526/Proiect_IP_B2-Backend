@@ -1,41 +1,28 @@
-import { Pool } from "pg";
+﻿﻿import postgres from "postgres";
 import chalk from "chalk";
 import figures from "figures";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import PrettyError from "pretty-error";
-
 const pe = new PrettyError();
 
-async function main() {
-	try {
-		const pool = new Pool({
-			connectionString: process.env.DATABASE_URL,
-			max: 1,
-		});
-		const db = drizzle(pool);
+try {
+	const connection = postgres(Bun.env.DATABASE_URL, { max: 1 });
+	const db = drizzle(connection);
 
-		await migrate(db, { migrationsFolder: "drizzle" });
-		await pool.end();
-	} catch (error) {
-		if (error instanceof Error) {
-			console.error(pe.render(error));
-		} else {
-			console.log(error);
-		}
-		process.exit(1);
-	}
-
-	console.log(
-		chalk.magentaBright(`${figures.tick} Migrations applied successfully!`),
-	);
-}
-
-main().catch((error) => {
+	await migrate(db, { migrationsFolder: "drizzle" });
+	await connection.end();
+} catch (error) {
 	if (error instanceof Error) {
 		console.error(pe.render(error));
 	} else {
 		console.log(error);
 	}
 	process.exit(1);
-});
+}
+
+console.log(
+	chalk.magentaBright(`${figures.tick} Migrations applied successfully!`),
+);
+
+process.exit();
