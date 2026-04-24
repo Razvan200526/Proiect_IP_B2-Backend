@@ -1,88 +1,122 @@
 import { eq, and, count as drizzleCount } from "drizzle-orm";
 import { db } from "../";
-import { helpRequests } from "../requests";
-import { IRepository } from "../repositories/base.repository";
+import { repository } from "../../di/decorators/repository";
+import { helpRequests, requestLocations } from "../requests";
+import type { IRepository } from "./base.repository";
+import type { requestStatusEnum } from "../enums";
 
 export type HelpRequest = typeof helpRequests.$inferSelect;
+export type RequestLocation = typeof requestLocations.$inferSelect;
 
 export type CreateHelpRequestDTO = typeof helpRequests.$inferInsert;
 
 export type UpdateHelpRequestDTO = Partial<CreateHelpRequestDTO>;
 
+@repository()
 export class HelpRequestRepository
-    implements IRepository<HelpRequest, CreateHelpRequestDTO, UpdateHelpRequestDTO, number> {
-    async create(data: CreateHelpRequestDTO): Promise<HelpRequest> {
-        const [newHelpRequest] = await db
-            .insert(helpRequests)
-            .values(data)
-            .returning();
-        return newHelpRequest;
-    }
+	implements
+		IRepository<HelpRequest, CreateHelpRequestDTO, UpdateHelpRequestDTO, number>
+{
+	async create(data: CreateHelpRequestDTO): Promise<HelpRequest> {
+		const [newHelpRequest] = await db
+			.insert(helpRequests)
+			.values(data)
+			.returning();
+		return newHelpRequest;
+	}
 
-    async findById(id: number): Promise<HelpRequest | undefined> {
-        const [found] = await db
-            .select()
-            .from(helpRequests)
-            .where(eq(helpRequests.id, id));
-        return found;
-    }
+	async findById(id: number): Promise<HelpRequest | undefined> {
+		const [found] = await db
+			.select()
+			.from(helpRequests)
+			.where(eq(helpRequests.id, id));
+		return found;
+	}
 
-    async findMany(limit: number = 50, offset: number = 0): Promise<HelpRequest[]> {
-        return await db.select().from(helpRequests).limit(limit).offset(offset);
-    }
+	async findLocationByHelpRequestId(
+		helpRequestId: number,
+	): Promise<RequestLocation | undefined> {
+		const [found] = await db
+			.select()
+			.from(requestLocations)
+			.where(eq(requestLocations.helpRequestId, helpRequestId));
+		return found;
+	}
 
-    async findFirstBy(criteria: Partial<HelpRequest>): Promise<HelpRequest | undefined> {
-        const conditions = [];
+	async findMany(
+		limit: number = 50,
+		offset: number = 0,
+	): Promise<HelpRequest[]> {
+		return await db.select().from(helpRequests).limit(limit).offset(offset);
+	}
 
-        for (const [key, value] of Object.entries(criteria)) {
-            if (value != undefined) {
-                const column = helpRequests[key as keyof typeof helpRequests];
-                conditions.push(eq(column as any, value));
-            }
-        }
+	async findFirstBy(
+		criteria: Partial<HelpRequest>,
+	): Promise<HelpRequest | undefined> {
+		const conditions = [];
 
-        if (conditions.length === 0) return undefined;
+		for (const [key, value] of Object.entries(criteria)) {
+			if (value !== undefined) {
+				const column = helpRequests[key as keyof typeof helpRequests];
+				conditions.push(eq(column as any, value));
+			}
+		}
 
-        const [found] = await db
-            .select()
-            .from(helpRequests)
-            .where(and(...conditions))
-            .limit(1);
+		if (conditions.length === 0) return undefined;
 
-        return found;
-    }
+		const [found] = await db
+			.select()
+			.from(helpRequests)
+			.where(and(...conditions))
+			.limit(1);
 
-    async update(id: number, data: UpdateHelpRequestDTO): Promise<HelpRequest | undefined> {
-        const [updated] = await db
-            .update(helpRequests)
-            .set(data)
-            .where(eq(helpRequests.id, id))
-            .returning();
-        return updated;
-    }
+		return found;
+	}
 
-    async delete(id: number): Promise<boolean> {
-        const result = await db
-            .delete(helpRequests)
-            .where(eq(helpRequests.id, id))
-            .returning({ id: helpRequests.id });
-        return result.length > 0;
-    }
+	async update(
+		id: number,
+		data: UpdateHelpRequestDTO,
+	): Promise<HelpRequest | undefined> {
+		const [updated] = await db
+			.update(helpRequests)
+			.set(data)
+			.where(eq(helpRequests.id, id))
+			.returning();
+		return updated;
+	}
 
-    async exists(id: number): Promise<boolean> {
-        const [{ value }] = await db
-            .select({ value: drizzleCount() })
-            .from(helpRequests)
-            .where(eq(helpRequests.id, id));
-        return value > 0;
-    }
+	async delete(id: number): Promise<boolean> {
+		const result = await db
+			.delete(helpRequests)
+			.where(eq(helpRequests.id, id))
+			.returning({ id: helpRequests.id });
+		return result.length > 0;
+	}
 
-    async count(): Promise<number> {
-        const [{ value }] = await db
-            .select({ value: drizzleCount() })
-            .from(helpRequests);
-        return value;
-    }
+	async exists(id: number): Promise<boolean> {
+		const [{ value }] = await db
+			.select({ value: drizzleCount() })
+			.from(helpRequests)
+			.where(eq(helpRequests.id, id));
+		return value > 0;
+	}
+
+	async count(): Promise<number> {
+		const [{ value }] = await db
+			.select({ value: drizzleCount() })
+			.from(helpRequests);
+		return value;
+	}
+
+	async updateStatus(
+		id: number,
+		newStatus: (typeof requestStatusEnum.enumValues)[number],
+	): Promise<HelpRequest | undefined> {
+		const [updated] = await db
+			.update(helpRequests)
+			.set({ status: newStatus })
+			.where(eq(helpRequests.id, id))
+			.returning();
+		return updated;
+	}
 }
-
-export const helpRequestRepository = new HelpRequestRepository();
