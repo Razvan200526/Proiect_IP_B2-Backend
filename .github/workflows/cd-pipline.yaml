@@ -8,7 +8,7 @@ on:
       - completed
   # push:
     branches:
-      - devops/cd-pipeline
+      - main
   workflow_dispatch:
 
 jobs:
