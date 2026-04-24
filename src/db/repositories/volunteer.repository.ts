@@ -102,8 +102,6 @@ export class VolunteerRepository {
 				email: user.email,
 				phone: user.phone,
 				image: user.image,
-				status: user.status,
-				averageRating: user.averageRating,
 				bio: profiles.bio,
 				languages: profiles.languages,
 				hiddenIdentity: profiles.hiddenIdentity,
