@@ -1,9 +1,10 @@
-import { eq, and, count as drizzleCount } from "drizzle-orm";
+import { eq, and, count as drizzleCount , lt} from "drizzle-orm";
 
 import { db } from "../../db";
 import { user } from "../auth-schema";
 import type { IRepository } from "./base.repository";
 import { repository } from "../../di/decorators/repository";
+
 
 export type User = typeof user.$inferSelect;
 
@@ -134,4 +135,19 @@ export class UserRepository
 		const [{ value }] = await db.select({ value: drizzleCount() }).from(user);
 		return value;
 	}
+
+	async deleteUnverifiedOlderThan(date: Date): Promise<number> {
+    const result = await db
+        .delete(user)
+        .where(
+            and(
+                eq(user.emailVerified, false),
+                lt(user.createdAt, date)
+            )
+        )
+        .returning({ id: user.id });
+    return result.length;
 }
+}
+export const userRepository = new UserRepository();
+

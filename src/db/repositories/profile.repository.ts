@@ -89,3 +89,4 @@ export class ProfileRepository
 		return value;
 	}
 }
+export const profileRepository = new ProfileRepository();
