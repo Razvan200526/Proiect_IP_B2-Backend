@@ -33,7 +33,10 @@ export class HelpRequestDetailsController {
 
 				return c.json(result.data, 200);
 			} catch (_error) {
-				return c.json({ message: "Could not update help request details" }, 500);
+				return c.json(
+					{ message: "Could not update help request details" },
+					500,
+				);
 			}
 		});
 }
