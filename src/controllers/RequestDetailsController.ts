@@ -31,32 +31,34 @@ const validate = (schema: z.ZodSchema) => async (c: any, next: any) => {
 
 @Controller("/tasks")
 export class HelpRequestDetailsController {
+    //aici la fel bagam constructorul si thi. in fata la tate aparitiile helpRequestDetailsService
     constructor(
         @inject(HelpRequestDetailsService)
         private readonly helpRequestDetailsService: HelpRequestDetailsService,
     ) { }
 
-    controller = new Hono()
-        .post(
-            "/:id/details",
-            validate(requestDetailsSchema), // ← middleware aplicat aici, inainte de handler
-            async (c) => {
-                try {
-                    const id = Number(c.req.param("id"));
-                    if (isNaN(id)) {
-                        return c.json({ message: "Invalid id" }, 400);
-                    }
-                    const body = await c.req.json();
-                    const result = await this.helpRequestDetailsService.upsertDetails(id, body);
-
-                    if (result.notFound) {
-                        return c.json({ message: "Task not found" }, 404);
-                    }
-
-                    return c.json(result.data, 200);
-                } catch (_error) {
-                    return c.json({ message: "Could not update help request details" }, 500);
+    controller = new Hono().post("/:id/details",
+        validate(requestDetailsSchema),
+        async (c) => {
+            try {
+                const id = Number(c.req.param("id"));
+                if (isNaN(id)) {
+                    return c.json({ message: "Invalid id" }, 400);
                 }
+                const body = await c.req.json();
+
+                const result = await this.helpRequestDetailsService.upsertDetails(
+                    id,
+                    body,
+                );
+
+                if (result.notFound) {
+                    return c.json({ message: "Task not found" }, 404);
+                }
+
+                return c.json(result.data, 200);
+            } catch (_error) {
+                return c.json({ message: "Could not update help request details" }, 500);
             }
-        );
+        });
 }
