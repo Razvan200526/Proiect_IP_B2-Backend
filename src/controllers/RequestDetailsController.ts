@@ -4,11 +4,29 @@ import { inject } from "../di";
 import { z } from "zod";
 import { RequestDetailsService } from "../services/RequestDetailsService";
 
-const requestDetailsSchema = z.object({
-	notes: z.string().min(1, "notes is required"),
-	languageNeeded: z.string().min(1, "language needed is required"),
-	safetyNotes: z.string().min(1, "safety notes is required"),
-});
+const requestDetailsSchema = z
+	.object({
+		notes: z
+			.string({
+				error: "Notes is required",
+			})
+			.trim()
+			.min(1, "Notes is required"),
+		languageNeeded: z
+			.string({
+				error: "Language needed is required",
+			})
+			.trim()
+			.min(1, "Language needed is required")
+			.max(50, "language needed must be at most 50 characters"),
+		safetyNotes: z
+			.string({
+				error: "Safety notes is required",
+			})
+			.trim()
+			.min(1, "Safety notes is required"),
+	})
+	.strict();
 
 @Controller("/tasks")
 export class RequestDetailsController {
@@ -19,18 +37,13 @@ export class RequestDetailsController {
 
 	controller = new Hono()
 		.post("/:id/details", async (c) => {
-			const id = Number(c.req.param("id"));
-			if (!Number.isInteger(id) || id <= 0) {
-				return c.json({ message: "Invalid id" }, 400);
-			}
-
 			const body = await c.req.json().catch(() => null);
 			const parsedBody = requestDetailsSchema.safeParse(body);
 			if (!parsedBody.success) {
 				return c.json(
 					{
 						errors: parsedBody.error.issues.map((issue) => ({
-							field: issue.path.join("."),
+							field: issue.path.length === 0 ? "body" : issue.path.join("."),
 							message: issue.message,
 						})),
 					},
@@ -39,6 +52,7 @@ export class RequestDetailsController {
 			}
 
 			try {
+				const id = Number(c.req.param("id"));
 				const result = await this.requestDetailsService.upsertDetails(
 					id,
 					parsedBody.data,
