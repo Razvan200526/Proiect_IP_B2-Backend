@@ -1,23 +1,31 @@
-import { Service } from "../di/decorators/service";
 import {
-	type CreateHelpRequestDTO,
-	helpRequestRepository,
-} from "../db/repositories/helpRequest.repository";
+    HelpRequestRepository,
+    type CreateHelpRequestDTO,
+    type HelpRequest,
+} from "../db/repositories/helpRequests.repository";
+import {inject} from "../di";
+import {Service} from "../di/decorators/service";
+import type {requestStatusEnum} from "../db/enums";
+import {InvalidStatusTransitionError, NotFoundError} from "../utils/Errors";
 
-type DeleteHelpRequestDetailsResponse =
-	| {
-			status: 204;
-	  }
-	| {
-			status: 404 | 409;
-			body: { error: string };
-	  };
+// State machine
+type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
+
+const VALID_TRANSITIONS: Partial<Record<RequestStatus, RequestStatus[]>> = {
+    OPEN: ["MATCHED", "CANCELLED"],
+    MATCHED: ["IN_PROGRESS", "CANCELLED", "REJECTED"],
+    IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+};
 
 @Service()
 export class HelpRequestService {
+	constructor(
+		@inject(HelpRequestRepository)
+		private readonly helpRequestRepo: HelpRequestRepository,
+	) {}
 	async createHelpRequest(data: CreateHelpRequestDTO) {
 		try {
-			return await helpRequestRepository.create({
+			return await this.helpRequestRepo.create({
 				...data,
 				status: "OPEN",
 			});
@@ -27,47 +35,40 @@ export class HelpRequestService {
 		}
 	}
 
-	async deleteHelpRequestDetails(
-		id: number,
-	): Promise<DeleteHelpRequestDetailsResponse> {
-		const task = await helpRequestRepository.findById(id);
 
-		if (!task) {
-			return {
-				status: 404,
-				body: { error: "Task not found." },
-			};
-		}
+  async getHelpRequestById(id: number) {
+    return await this.helpRequestRepo.findById(id);
+  }
+  
+   
 
-		if (
-			["MATCHED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "REJECTED"].includes(
-				task.status,
-			)
-		) {
-			return {
-				status: 409,
-				body: {
-					error:
-						"Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED.",
-				},
-			};
-		}
+    /**
+     * Updates a HelpRequest status according to the allowed transitions
+     * @param id - The UUID of the HelpRequest to update
+     * @param newStatus - The target status to transition to
+     * @returns The updated HelpRequest object
+     * @throws {NotFoundError} If the HelpRequest is not found (404)
+     * @throws {InvalidStatusTransitionError} If the transition is forbidden (400)
+     */
+    async updateHelpRequestStatus(id: number, newStatus: RequestStatus): Promise<HelpRequest> {
+        const current = await this.helpRequestRepo.findById(id);
+        if (!current) {
+            throw new NotFoundError("HelpRequest", String(id));
+        }
 
-		const details = await helpRequestRepository.findDetailsByHelpRequestId(id);
+        const currentStatus = current.status;
+        const allowedNext = VALID_TRANSITIONS[currentStatus];
 
-		if (!details) {
-			return {
-				status: 409,
-				body: { error: "Task has no details." },
-			};
-		}
+        if (!allowedNext?.includes(newStatus)) {
+            throw new InvalidStatusTransitionError(currentStatus, newStatus);
+        }
 
-		await helpRequestRepository.deleteDetailsByHelpRequestId(id);
+        const updated = await this.helpRequestRepo.updateStatus(id, newStatus);
+        if (!updated) {
+            throw new NotFoundError("HelpRequest", String(id));
+        }
 
-		return {
-			status: 204,
-		};
-	}
+        return updated;
+
+    }
 }
-
-export const helpRequestService = new HelpRequestService();

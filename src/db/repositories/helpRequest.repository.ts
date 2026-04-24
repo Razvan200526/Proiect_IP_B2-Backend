@@ -1,8 +1,9 @@
-import { repository } from "../../di/decorators/repository";
+import { eq, and, count as drizzleCount } from "drizzle-orm";
 import { db } from "../";
-import type { IRepository } from "../repositories/base.repository";
-import { helpRequests, requestDetails } from "../requests";
-import { and, count as drizzleCount, eq } from "drizzle-orm";
+import { repository } from "../../di/decorators/repository";
+import { helpRequests } from "../requests";
+import type { IRepository } from "./base.repository";
+import type {requestStatusEnum} from "../enums";
 
 export type HelpRequest = typeof helpRequests.$inferSelect;
 
@@ -81,24 +82,6 @@ export class HelpRequestRepository
 		return result.length > 0;
 	}
 
-	async findDetailsByHelpRequestId(
-		helpRequestId: number,
-	): Promise<typeof requestDetails.$inferSelect | undefined> {
-		const [details] = await db
-			.select()
-			.from(requestDetails)
-			.where(eq(requestDetails.helpRequestId, helpRequestId));
-		return details;
-	}
-
-	async deleteDetailsByHelpRequestId(helpRequestId: number): Promise<boolean> {
-		const result = await db
-			.delete(requestDetails)
-			.where(eq(requestDetails.helpRequestId, helpRequestId))
-			.returning({ id: requestDetails.id });
-		return result.length > 0;
-	}
-
 	async exists(id: number): Promise<boolean> {
 		const [{ value }] = await db
 			.select({ value: drizzleCount() })
@@ -113,6 +96,16 @@ export class HelpRequestRepository
 			.from(helpRequests);
 		return value;
 	}
-}
 
-export const helpRequestRepository = new HelpRequestRepository();
+    async updateStatus(
+        id: number,
+        newStatus: (typeof requestStatusEnum.enumValues)[number],
+    ): Promise<HelpRequest | undefined> {
+        const [updated] = await db
+            .update(helpRequests)
+            .set({ status: newStatus })
+            .where(eq(helpRequests.id, id))
+            .returning();
+        return updated;
+    }
+}
