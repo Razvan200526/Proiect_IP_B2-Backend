@@ -8,6 +8,7 @@ import { resetPasswordTemplate } from "./mailers/templates/resetPassword";
 import { logger } from "./utils/logger";
 import * as schema from "./db/schema";
 import { getMailer } from "./mailers/getMailer";
+import { username } from "better-auth/plugins";
 
 const auth = betterAuth({
 	database: drizzleAdapter(db, { provider: "pg", schema }),
@@ -26,13 +27,26 @@ const auth = betterAuth({
 			}
 		},
 	},
+
 	user: {
 		additionalFields: {
 			userName: {
 				type: "string",
 			},
-			phone: {
+			phoneNumber: {
 				type: "string",
+				required: false,
+			},
+			bio: {
+				type: "string",
+				required: false,
+			},
+			languages: {
+				type: "string[]",
+				required: false,
+			},
+			hiddenIdentity: {
+				type: "boolean",
 				required: false,
 			},
 		},
@@ -81,7 +95,12 @@ const auth = betterAuth({
 	},
 
 	plugins: [
-		openAPI(),
+		openAPI({
+			disableDefaultReference: false,
+		}),
+		username({
+			minUsernameLength: 5,
+		}),
 		emailOTP({
 			async sendVerificationOTP({ email, otp, type }) {
 				const mailer = getMailer();
