@@ -1,6 +1,6 @@
 import { inject } from "../di";
 import { Service } from "../di/decorators/service";
-import { requestStatusEnum } from "../db/enums";
+import type { requestStatusEnum } from "../db/enums";
 import { HelpRequestRepository } from "../db/repositories/helpRequest.repository";
 import {
 	HelpRequestDetailsRepository,

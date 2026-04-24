@@ -1,9 +1,9 @@
-import postgres from "postgres";
+import { Pool } from "pg";
 import chalk from "chalk";
 import figures from "figures";
 import { is } from "drizzle-orm";
 import { type PgTable, PgTable as PgTableEntity } from "drizzle-orm/pg-core";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/node-postgres";
 import PrettyError from "pretty-error";
 import { reset } from "drizzle-seed";
 import { createSeedContext, entitySeeds } from "../seeds";
@@ -17,9 +17,11 @@ const seedSchema = Object.fromEntries(
 
 async function main() {
 	try {
-		// biome-ignore lint/style/noNonNullAssertion: <trust me>
-		const connection = postgres(process.env.DATABASE_URL!, { max: 1 });
-		const db = drizzle(connection);
+		const pool = new Pool({
+			connectionString: process.env.DATABASE_URL,
+			max: 1,
+		});
+		const db = drizzle(pool);
 		const context = createSeedContext();
 
 		await reset(db, seedSchema);
@@ -31,7 +33,7 @@ async function main() {
 				),
 			);
 		}
-		await connection.end();
+		await pool.end();
 	} catch (error) {
 		if (error instanceof Error) {
 			console.error(pe.render(error));
