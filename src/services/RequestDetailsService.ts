@@ -127,5 +127,3 @@ export class RequestDetailsService {
 		}
 	}
 }
-
-export { RequestDetailsService as HelpRequestDetailsService };

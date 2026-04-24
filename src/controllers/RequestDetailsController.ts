@@ -38,5 +38,3 @@ export class RequestDetailsController {
 			return c.json(result.body, result.status);
 		});
 }
-
-export { RequestDetailsController as HelpRequestDetailsController };

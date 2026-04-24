@@ -120,5 +120,3 @@ export class HelpRequestRepository
 		return updated;
 	}
 }
-
-export const helpRequestRepository = new HelpRequestRepository();
