@@ -4,7 +4,7 @@ import { requestStatusEnum, urgencyLevelEnum } from "../../db/enums";
 
 export const helpRequestInputSchema = z
 	.object({
-		userId: z.string().nullable().optional(),
+		requestedByUserId: z.string().nullable().optional(),
 		guestSessionId: z.string().max(128).optional(),
 		title: z
 			.string({
