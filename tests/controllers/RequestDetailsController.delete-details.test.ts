@@ -34,6 +34,11 @@ describe("DELETE /tasks/:id/details", () => {
       method: "DELETE",
     });
 
+  const getTask = (id: string | number) =>
+    app.request(`http://localhost/tasks/${id}`, {
+      method: "GET",
+    });
+
   beforeEach(() => {
     store = new Map<number, TaskRecord>();
 
@@ -85,9 +90,26 @@ describe("DELETE /tasks/:id/details", () => {
       "/tasks",
       new RequestDetailsController(requestDetailsService as any).controller,
     );
+    app.get("/tasks/:id", (c) => {
+      const id = Number(c.req.param("id"));
+      const found = store.get(id);
+
+      if (!found) {
+        return c.json({ message: "Task not found." }, 404);
+      }
+
+      return c.json(
+        {
+          id: found.id,
+          status: found.status,
+          requestDetails: found.requestDetails,
+        },
+        200,
+      );
+    });
   });
 
-  test("returns 204 and removes request details from storage", async () => {
+  test("returns 204 and subsequent GET shows requestDetails null", async () => {
     store.set(1, {
       id: 1,
       status: "OPEN",
@@ -100,7 +122,11 @@ describe("DELETE /tasks/:id/details", () => {
     const deleteResponse = await deleteDetails(1);
     expect(deleteResponse.status).toBe(204);
 
-    expect(store.get(1)?.requestDetails).toBeNull();
+    const getResponse = await getTask(1);
+    const body = await getResponse.json();
+
+    expect(getResponse.status).toBe(200);
+    expect(body.requestDetails).toBeNull();
   });
 
   test("returns 409 when task has no details", async () => {
