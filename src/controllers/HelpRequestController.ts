@@ -5,6 +5,8 @@ import { HelpRequestService } from "../services/HelpRequestService";
 import { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 
+import { authMiddleware } from "../middlware/authMiddleware";
+
 type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
 
 const VALID_STATUSES = new Set<RequestStatus>(requestStatusEnum.enumValues);
