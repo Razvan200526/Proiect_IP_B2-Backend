@@ -5,35 +5,35 @@ import { z } from "zod";
 import { RequestDetailsService } from "../services/RequestDetailsService";
 
 const requestDetailsSchema = z
-    .object({
-        notes: z
-            .string({
-                error: "Notes is required",
-            })
-            .trim()
-            .min(1, "Notes is required"),
-        languageNeeded: z
-            .string({
-                error: "Language needed is required",
-            })
-            .trim()
-            .min(1, "Language needed is required")
-            .max(50, "language needed must be at most 50 characters"),
-        safetyNotes: z
-            .string({
-                error: "Safety notes is required",
-            })
-            .trim()
-            .min(1, "Safety notes is required"),
-    })
-    .strict();
+	.object({
+		notes: z
+			.string({
+				error: "Notes is required",
+			})
+			.trim()
+			.min(1, "Notes is required"),
+		languageNeeded: z
+			.string({
+				error: "Language needed is required",
+			})
+			.trim()
+			.min(1, "Language needed is required")
+			.max(50, "language needed must be at most 50 characters"),
+		safetyNotes: z
+			.string({
+				error: "Safety notes is required",
+			})
+			.trim()
+			.min(1, "Safety notes is required"),
+	})
+	.strict();
 
 @Controller("/tasks")
 export class RequestDetailsController {
-    constructor(
-        @inject(RequestDetailsService)
-        private readonly requestDetailsService: RequestDetailsService,
-    ) { }
+	constructor(
+		@inject(RequestDetailsService)
+		private readonly requestDetailsService: RequestDetailsService,
+	) {}
 
     controller = new Hono()
         .put("/:id/details", async (c) => {
