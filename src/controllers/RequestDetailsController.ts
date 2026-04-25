@@ -52,7 +52,7 @@ export class RequestDetailsController {
             }
 
             const id = Number(c.req.param("id"));
-            if (Number.isNaN(id)) {
+          	if (!Number.isInteger(id)) {
                 return c.json({ message: "Invalid id" }, 400);
             }
 
