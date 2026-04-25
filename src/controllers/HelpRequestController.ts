@@ -5,6 +5,8 @@ import { HelpRequestService } from "../services/HelpRequestService";
 import { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 
+import { authMiddleware } from "../middlware/authMiddleware";
+
 type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
 
 const VALID_STATUSES = new Set<RequestStatus>(requestStatusEnum.enumValues);
@@ -130,8 +132,36 @@ export class HelpRequestController {
 				if (error instanceof InvalidStatusTransitionError) {
 					return c.json({ message: error.message }, 400);
 				}
-
+        
         throw error;
-	      }
-	    });
+      }
+    })
+  
+
+    //BE1-12
+    .get("/", authMiddleware, async (c) => {
+      try {
+        const pageParam = c.req.query("page");
+        const pageSizeParam = c.req.query("pageSize");
+
+        const page = pageParam ? Number(pageParam) : 1;
+        const pageSize = pageSizeParam ? Number(pageSizeParam) : 10;
+
+        if (!Number.isInteger(page) || page < 1) {
+            return c.json({ error: "Eroare: 'page' trebuie sa fie minim 1." }, 400);
+        }
+
+        if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+            return c.json({ error: "Eroare: 'pageSize' trebuie sa fie intre 1 si 100." }, 400);
+        }
+
+        const result = await this.helpRequestService.getPaginatedTasks(page, pageSize);
+
+        return c.json(result, 200);
+      } catch (error) {
+        console.error("Eroare la GET /tasks paginat:", error);
+        return c.json({ error: "Eroare interna a serverului." }, 500);
+      }
+    });
+
 }
