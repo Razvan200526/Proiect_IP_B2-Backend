@@ -25,14 +25,14 @@ export class HelpRequestController {
 
 	controller = new Hono()
 		.use("/", createValidationMiddleware(helpRequestInputSchema))
-		
+
 		.post("/", async (c) => {
-				try {
-					const body = await c.req.json();
-					const result = await this.helpRequestService.createHelpRequest(body);
-					return c.json(result, 201);
-				} catch {
-					return c.json({ message: "Internal server error" }, 500);
+			try {
+				const body = await c.req.json();
+				const result = await this.helpRequestService.createHelpRequest(body);
+				return c.json(result, 201);
+			} catch {
+				return c.json({ message: "Internal server error" }, 500);
 			}
 		})
 
@@ -133,32 +133,31 @@ export class HelpRequestController {
 				if (error instanceof InvalidStatusTransitionError) {
 					return c.json({ message: error.message }, 400);
 				}
-        
-        throw error;
-      }
-    })
-  
 
-    // BE1-12 & BE1-13 (Paginare + Sortare)
-    .get("/", authMiddleware, async (c) => {
-      try {
-        //Apelam validatorul nostru curat, trimitându-i toți parametrii din URL
-        const validation = validateTasksQuery(c.req.query());
+				throw error;
+			}
+		})
 
-       //Daca validatorul gaseste o problema 
-        if (validation.error || !validation.validData) {
-            return c.json({ error: validation.error || "Eroare de validare." }, 400);
-        }
+		// BE1-12 & BE1-13 (Paginare + Sortare)
+       .get("/", authMiddleware, async (c) => {
+         try {
+           //Apelam validatorul nostru curat, trimitându-i toți parametrii din URL
+           const validation = validateTasksQuery(c.req.query());
 
-        //Extragem parametrii 
-        const { page, pageSize, sortBy, order } = validation.validData;
-        const result = await this.helpRequestService.getPaginatedTasks(page, pageSize, sortBy, order);
+           //Daca validatorul gaseste o problema 
+           if (validation.error || !validation.validData) {
+               return c.json({ error: validation.error || "Eroare de validare." }, 400);
+            }
 
-        return c.json(result, 200);
-      } catch (error) {
-        console.error("Eroare la GET /tasks paginat si sortat:", error);
-        return c.json({ error: "Eroare interna a serverului." }, 500);
-      }
-    });
+           //Extragem parametrii 
+           const { page, pageSize, sortBy, order } = validation.validData;
+           const result = await this.helpRequestService.getPaginatedTasks(page, pageSize, sortBy, order);
+
+           return c.json(result, 200);
+         } catch (error) {
+           console.error("Eroare la GET /tasks paginat si sortat:", error);
+           return c.json({ error: "Eroare interna a serverului." }, 500);
+           }
+        });
 
 }
