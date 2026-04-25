@@ -86,7 +86,7 @@ export class HelpRequestController {
 			}
 		})
 
-		.post("/:id/status", async (c) => {
+		.patch("/:id/status", async (c) => {
 			const requestId = Number(c.req.param("id"));
 			if (!Number.isInteger(requestId)) {
 				return c.json(
@@ -128,7 +128,7 @@ export class HelpRequestController {
 				}
 
 				if (error instanceof InvalidStatusTransitionError) {
-					return c.json({ message: error.message }, 400);
+					return c.json({ message: error.message }, 409);
 				}
 
         throw error;
