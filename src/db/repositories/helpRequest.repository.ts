@@ -122,15 +122,24 @@ export class HelpRequestRepository
     }
 
 
-    //BE1-12
-    async findPaginatedWithDetails(page: number, pageSize: number, filters?: SQL) {
+    //BE1-12 + BE1-13
+    async findPaginatedWithDetails(
+        page: number, 
+        pageSize: number, 
+        sortBy: 'createdAt' | 'urgency' = 'createdAt', 
+        order: 'ASC' | 'DESC' = 'DESC',
+        filters?: SQL
+    ) {
         const offset = (page - 1) * pageSize;
 
         const data = await db.query.helpRequests.findMany({
             limit: pageSize,
             offset: offset,
-            where: filters, 
-			orderBy: (helpRequests, { desc }) => [desc(helpRequests.id)],
+            where: filters,
+            orderBy: (fields, { asc, desc }) => {
+                const column = fields[sortBy]; 
+                return order === 'ASC' ? [asc(column)] : [desc(column)]; 
+            },
             with: {
                 requestDetails: true 
             }

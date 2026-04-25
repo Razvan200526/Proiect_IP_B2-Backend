@@ -6,6 +6,7 @@ import { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 
 import { authMiddleware } from "../middlware/authMiddleware";
+import { validateTasksQuery } from "../utils/validators/queryValidator";
 
 type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
 
@@ -138,28 +139,24 @@ export class HelpRequestController {
     })
   
 
-    //BE1-12
+    // BE1-12 & BE1-13 (Paginare + Sortare)
     .get("/", authMiddleware, async (c) => {
       try {
-        const pageParam = c.req.query("page");
-        const pageSizeParam = c.req.query("pageSize");
+        //Apelam validatorul nostru curat, trimitându-i toți parametrii din URL
+        const validation = validateTasksQuery(c.req.query());
 
-        const page = pageParam ? Number(pageParam) : 1;
-        const pageSize = pageSizeParam ? Number(pageSizeParam) : 10;
-
-        if (!Number.isInteger(page) || page < 1) {
-            return c.json({ error: "Eroare: 'page' trebuie sa fie minim 1." }, 400);
+       //Daca validatorul gaseste o problema 
+        if (validation.error || !validation.validData) {
+            return c.json({ error: validation.error || "Eroare de validare." }, 400);
         }
 
-        if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
-            return c.json({ error: "Eroare: 'pageSize' trebuie sa fie intre 1 si 100." }, 400);
-        }
-
-        const result = await this.helpRequestService.getPaginatedTasks(page, pageSize);
+        //Extragem parametrii 
+        const { page, pageSize, sortBy, order } = validation.validData;
+        const result = await this.helpRequestService.getPaginatedTasks(page, pageSize, sortBy, order);
 
         return c.json(result, 200);
       } catch (error) {
-        console.error("Eroare la GET /tasks paginat:", error);
+        console.error("Eroare la GET /tasks paginat si sortat:", error);
         return c.json({ error: "Eroare interna a serverului." }, 500);
       }
     });
