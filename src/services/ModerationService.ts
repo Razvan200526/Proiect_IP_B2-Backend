@@ -3,8 +3,11 @@ import { Service } from "../di/decorators/service";
 import blacklistConfig from "../utils/moderation/blacklist.json";
 import normalizationConfig from "../utils/moderation/normalization.json";
 
-// temporar pana schimbam la un fisier json sau cv
-const BANNED_WORDS = ["spam", "scam", "offensive_word"];
+export enum ModerationLevel {
+	CLEAN = "CLEAN",
+	FLAGGED = "FLAGGED",
+	BLOCKED = "BLOCKED"
+}
 
 export class ModerationError extends Error {
 	constructor(public message: string) {
@@ -14,14 +17,32 @@ export class ModerationError extends Error {
 	}
 }
 
+interface ModerationResult {
+    level: ModerationLevel;
+    reason?: string;
+}
+
 @Service()
 export class ModerationService {
-	private exactWordsRegex: RegExp;
+	private blockedRegex: RegExp | null = null;
+    private flaggedRegex: RegExp | null = null;
 
 	constructor() {
-		// compile regex when service starts
-		const wordsPattern = blacklistConfig.exactWords.join("|");
-		this.exactWordsRegex = new RegExp(`\\b(${wordsPattern})\\b`, "i"); // "i" makes it case-insensitive
+		const blockedTerms = blacklistConfig.keywords
+            .filter(k => k.severity === ModerationLevel.BLOCKED)
+            .map(k => k.term);
+        
+        const flaggedTerms = blacklistConfig.keywords
+            .filter(k => k.severity === ModerationLevel.FLAGGED)
+            .map(k => k.term);
+
+        if (blockedTerms.length > 0) {
+            this.blockedRegex = new RegExp(`\\b(${blockedTerms.join("|")})\\b`, "i");
+        }
+
+        if (flaggedTerms.length > 0) {
+            this.flaggedRegex = new RegExp(`\\b(${flaggedTerms.join("|")})\\b`, "i");
+        }
 	}
 
 	/**
@@ -52,32 +73,37 @@ export class ModerationService {
 	 * Scans a string for inappropriate content.
 	 * @returns result and flagged word (if applicable)
 	 */
-	public scanContent(text: string | null | undefined): {
-		isClean: boolean;
-		reason?: string
-	} {
+	public scanContent(text: string | null | undefined): ModerationResult {
 		if (!text || text.trim() === "") {
-			return { isClean: true };
+			return { level: ModerationLevel.CLEAN };
 		}
 
-		const normalizedText = this.normalizeText(text);
+		const normalized = this.normalizeText(text);
 
-		// check exact words
-		const words = normalizedText.split(/\s+/);
-		if (this.exactWordsRegex.test(normalizedText)) {
-			console.warn("[Moderation Service] Blocked due to exact word match");
-			return { isClean: false, reason: "Inappropriate language detected" };
-		}
+		// check blocked
+		if (this.blockedRegex?.test(normalized)) {
+            return { level: ModerationLevel.BLOCKED, reason: "Content violates safety policies." };
+        }
 
-		// check patterns
-		for (const pattern of blacklistConfig.patterns) {
-			const regex = new RegExp(pattern, "i");
-			if (regex.test(normalizedText)) {
-				console.warn(`[Moderation Service] Blocked due to pattern match: ${pattern}`);
-				return { isClean: false, reason: "Suspicious phrase detected" };
-			}
-		}
+		// check blocked patterns
+		for (const p of blacklistConfig.patterns.filter(p => p.severity === ModerationLevel.BLOCKED)) {
+            if (new RegExp(p.regex, "i").test(normalized)) {
+                return { level: ModerationLevel.BLOCKED, reason: "Blacklisted pattern detected." };
+            }
+        }
 
-		return { isClean: true };
+		// check flagged
+		if (this.flaggedRegex?.test(normalized)) {
+            return { level: ModerationLevel.FLAGGED, reason: "Suspicious activity detected." };
+        }
+
+		// check flagged patterns
+		for (const p of blacklistConfig.patterns.filter(p => p.severity === ModerationLevel.FLAGGED)) {
+            if (new RegExp(p.regex, "i").test(normalized)) {
+                return { level: ModerationLevel.FLAGGED, reason: "Request flagged for review." };
+            }
+        }
+
+		return { level: ModerationLevel.CLEAN };
 	}
 }

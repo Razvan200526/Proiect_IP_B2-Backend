@@ -1,12 +1,11 @@
 {
-    "exactWords": [
-        "scam",
-        "spam",
-        "crypto",
-        "hack"
-    ],
-    "patterns": [
-        "buy.*followers",
-        "click.*link"
-    ]
+  "keywords": [
+    { "term": "scam", "severity": "BLOCKED" },
+    { "term": "crypto", "severity": "FLAGGED" },
+    { "term": "call me", "severity": "FLAGGED" }
+  ],
+  "patterns": [
+    { "regex": "click.*link", "severity": "FLAGGED" },
+    { "regex": "offensive_regex_here", "severity": "BLOCKED" }
+  ]
 }

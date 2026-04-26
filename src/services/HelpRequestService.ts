@@ -5,7 +5,7 @@ import {
 } from "../db/repositories/helpRequest.repository";
 import { inject } from "../di";
 import { Service } from "../di/decorators/service";
-import { ModerationService, ModerationError } from "./ModerationService";
+import { ModerationService, ModerationError, ModerationLevel } from "./ModerationService";
 import type { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 import { HelpRequestDetailsRepository } from "../db/repositories/requestDetails.repository";
@@ -31,17 +31,26 @@ export class HelpRequestService {
 	) {}
 
 	async createHelpRequest(data: CreateHelpRequestDTO) {
-		const titleCheck = this.moderationService.scanContent(data.title);
-		if (!titleCheck.isClean) {
-			throw new ModerationError(titleCheck.reason ?? "Inappropriate content detected in title.");
+		const titleResult = this.moderationService.scanContent(data.title);
+    	const descResult = this.moderationService.scanContent(data.description);
+
+		let finalResult = ModerationLevel.CLEAN;
+		if (titleResult.level === ModerationLevel.BLOCKED || descResult.level === ModerationLevel.BLOCKED) {
+			finalResult = ModerationLevel.BLOCKED;
+		} else if (titleResult.level === ModerationLevel.FLAGGED || descResult.level === ModerationLevel.FLAGGED) {
+			finalResult = ModerationLevel.FLAGGED;
 		}
 
-		const descCheck = this.moderationService.scanContent(data.description);
-		if (!descCheck.isClean) {
-			throw new ModerationError(
-				descCheck.reason ?? "Inappropriate content detected in title."
-			);
-		}
+		const reason = titleResult.reason || descResult.reason;
+
+		if (finalResult === ModerationLevel.BLOCKED) {
+        	throw new ModerationError(reason);
+    	}
+
+		if (finalResult === ModerationLevel.FLAGGED) {
+			console.warn(`[Moderation] Request flagged: ${reason}`);
+			// TRIGGER SOMETHING HERE!!
+    	}
 
 		try {
 			return await this.helpRequestRepo.create({
