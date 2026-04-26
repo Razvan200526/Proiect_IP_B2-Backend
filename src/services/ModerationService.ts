@@ -1,6 +1,7 @@
 import { testUtils } from "better-auth/plugins";
 import { Service } from "../di/decorators/service";
-import blacklistConfig from "../utils/blacklist.json";
+import blacklistConfig from "../utils/moderation/blacklist.json";
+import normalizationConfig from "../utils/moderation/normalization.json";
 
 // temporar pana schimbam la un fisier json sau cv
 const BANNED_WORDS = ["spam", "scam", "offensive_word"];
@@ -24,21 +25,27 @@ export class ModerationService {
 	}
 
 	/**
-   * Normalizes "leet-speak" characters to regular letters
-   * e.g., "$c@m" becomes "scam"
-   */
+	* Normalizes "leet-speak" characters to regular letters
+	* e.g., "$c@m" becomes "scam"
+	*/
 	private normalizeText(text: string): string {
-		return text
-			.toLowerCase()
-			.replace(/@/g, "a")
-			.replace(/\$/g, "s")
-			.replace(/0/g, "o")
-			.replace(/1/g, "i")
-			.replace(/3/g, "e")
-			.replace(/4/g, "a")
-			.replace(/5/g, "s")
-			// Remove any punctuation that might be used to break up words (e.g., "s.c.a.m")
-			.replace(/[.,/#!^&*;:{}=\-_`~()]/g, "");
+		let normalized = text.toLowerCase();
+
+		// apply mapping
+		for (const [target, symbols] of Object.entries(normalizationConfig.mappings)) {
+			for (const symbol of symbols) {
+				// escape special regex characters in the symbol (like $ or |)
+				const escapedSymbol = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const regex = new RegExp(escapedSymbol, 'g');
+				normalized = normalized.replace(regex, target);
+			}
+		}
+
+		// remove characters that break up words (s.c.a.m, s-c-a-m)
+		return normalized
+			.replace(/[^a-z0-9\s]/g, "") // keep only lowercase letters
+			.replace(/\s+/g, " ") // make every space a single space
+			.trim();
 	}
 
 	/**
