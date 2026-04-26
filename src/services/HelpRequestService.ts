@@ -10,6 +10,7 @@ import { logger } from "../utils/logger";
 import type { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 import { HelpRequestDetailsRepository } from "../db/repositories/requestDetails.repository";
+import type { TaskFilterParams } from "../filters";
 
 // State machine
 type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
@@ -129,15 +130,13 @@ export class HelpRequestService {
 		}
 
 		return updated;
-	}
 
-	//BE1-12
-	async getPaginatedTasks(page: number, pageSize: number, filters?: any) {
-		const { data, total } = await this.helpRequestRepo.findPaginatedWithDetails(
-			page,
-			pageSize,
-			filters,
-		);
+    }
+
+
+    //BE1-12
+    async getPaginatedTasks(page: number, pageSize: number, filters?: any) {
+        const { data, total } = await this.helpRequestRepo.findPaginatedWithDetails(page, pageSize, filters);
 
 		const totalPages = Math.ceil(total / pageSize);
 

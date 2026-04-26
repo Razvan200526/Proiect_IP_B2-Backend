@@ -174,6 +174,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		const body: any = await response.json();
 		expect(body.meta.page).toBe(1);
 		expect(body.meta.pageSize).toBe(10);
+		expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {});
 
 		serviceSpy.mockRestore();
 	});
@@ -201,6 +202,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		expect(body.data).toBeArray();
 		expect(body.data.length).toBe(0);
 		expect(body.meta.page).toBe(999);
+		expect(serviceSpy).toHaveBeenCalledWith(999, 10, "createdAt", "DESC", {});
 
 		serviceSpy.mockRestore();
 	});
@@ -256,6 +258,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		const body: any = await response.json();
 		expect(body.meta.page).toBe(2);
 		expect(body.meta.pageSize).toBe(5);
+		expect(serviceSpy).toHaveBeenCalledWith(2, 5, "createdAt", "DESC", {});
 
 		serviceSpy.mockRestore();
 	});
@@ -284,6 +287,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 
 		expect(body.data[0].requestDetails).not.toBeNull();
 		expect(body.data[1].requestDetails).toBeNull();
+		expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {});
 
 		serviceSpy.mockRestore();
 	});
@@ -312,6 +316,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 
 		expect(body.data[0].requestedByUserId).toBeUndefined();
 		expect(body.data[1].requestedByUserId).toBe("user-123");
+		expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {});
 
 		serviceSpy.mockRestore();
 	});
