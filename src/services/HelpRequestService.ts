@@ -5,6 +5,7 @@ import {
 } from "../db/repositories/helpRequest.repository";
 import { inject } from "../di";
 import { Service } from "../di/decorators/service";
+import { ModerationService, ModerationError } from "./ModerationService";
 import type { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 import { HelpRequestDetailsRepository } from "../db/repositories/requestDetails.repository";
@@ -25,9 +26,21 @@ export class HelpRequestService {
 		private readonly helpRequestRepo: HelpRequestRepository,
 		@inject(HelpRequestDetailsRepository)
 		private readonly helpRequestDetailsRepo: HelpRequestDetailsRepository,
+		@inject(ModerationService)
+		private readonly moderationService: ModerationService,
 	) {}
 
 	async createHelpRequest(data: CreateHelpRequestDTO) {
+		const titleCheck = this.moderationService.scanContent(data.title);
+        if (!titleCheck.isClean) {
+			throw new ModerationError("Inappropriate content detected in title");
+        }
+
+		const descCheck = this.moderationService.scanContent(data.description);
+		if (!descCheck.isClean) {
+			throw new ModerationError("Inappropriate content detected in description");
+		}
+
 		try {
 			return await this.helpRequestRepo.create({
 				...data,
