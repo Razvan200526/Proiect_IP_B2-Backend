@@ -48,8 +48,7 @@ export class HelpRequestService {
     	}
 
 		if (finalResult === ModerationLevel.FLAGGED) {
-			console.warn(`[Moderation] Request flagged: ${reason}`);
-			// TRIGGER SOMETHING HERE!!
+			// TODO: do something?
     	}
 
 		try {
@@ -58,7 +57,7 @@ export class HelpRequestService {
 				status: "OPEN",
 			});
 		} catch (error) {
-			console.error("Failed to create help request:", error);
+			logger.exception(error);
 			throw new Error("Could not create help request");
 		}
 	}

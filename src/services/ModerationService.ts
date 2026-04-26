@@ -1,5 +1,6 @@
 import { testUtils } from "better-auth/plugins";
 import { Service } from "../di/decorators/service";
+import { logger } from "../utils/logger";
 import blacklistConfig from "../utils/moderation/blacklist.json";
 import normalizationConfig from "../utils/moderation/normalization.json";
 
@@ -85,24 +86,28 @@ export class ModerationService {
 
 		// check blocked
 		if (this.blockedRegex?.test(normalized)) {
+			logger.warn(`[Moderation Service] BLOCKED (Keyword). Snippet: "${normalized.substring(0, 50)}"`);
             return { level: ModerationLevel.BLOCKED, reason: "Content violates safety policies." };
         }
 
 		// check blocked patterns
 		for (const p of blacklistConfig.patterns.filter(p => p.severity === ModerationLevel.BLOCKED)) {
             if (new RegExp(p.regex, "i").test(normalized)) {
+				logger.warn(`[Moderation Service] BLOCKED (Pattern). Snippet: "${normalized.substring(0, 50)}"`);
                 return { level: ModerationLevel.BLOCKED, reason: "Blacklisted pattern detected." };
             }
         }
 
 		// check flagged
 		if (this.flaggedRegex?.test(normalized)) {
+			logger.info(`[Moderation Service] FLAGGED (Keyword). Snippet: "${normalized.substring(0, 50)}"`);
             return { level: ModerationLevel.FLAGGED, reason: "Suspicious activity detected." };
         }
 
 		// check flagged patterns
 		for (const p of blacklistConfig.patterns.filter(p => p.severity === ModerationLevel.FLAGGED)) {
             if (new RegExp(p.regex, "i").test(normalized)) {
+				logger.info(`[Moderation Service] FLAGGED (Pattern). Snippet: "${normalized.substring(0, 50)}"`);
                 return { level: ModerationLevel.FLAGGED, reason: "Request flagged for review." };
             }
         }
