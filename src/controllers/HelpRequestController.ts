@@ -5,9 +5,15 @@ import { HelpRequestService } from "../services/HelpRequestService";
 import { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 
+import { authMiddleware } from "../middlware/authMiddleware";
+
 type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
 
 const VALID_STATUSES = new Set<RequestStatus>(requestStatusEnum.enumValues);
+import {
+	createValidationMiddleware,
+	helpRequestInputSchema,
+} from "../validation";
 
 @Controller("/tasks")
 export class HelpRequestController {
@@ -17,13 +23,15 @@ export class HelpRequestController {
 	) {}
 
 	controller = new Hono()
+		.use("/", createValidationMiddleware(helpRequestInputSchema))
+
 		.post("/", async (c) => {
-			try {
-				const body = await c.req.json();
-				const result = await this.helpRequestService.createHelpRequest(body);
-				return c.json(result, 201);
-			} catch {
-				return c.json({ message: "Internal server error" }, 500);
+				try {
+					const body = await c.req.json();
+					const result = await this.helpRequestService.createHelpRequest(body);
+					return c.json(result, 201);
+				} catch {
+					return c.json({ error: "Internal server error" }, 500);
 			}
 		})
 
@@ -39,7 +47,7 @@ export class HelpRequestController {
 				) {
 					return c.json(
 						{
-							message:
+							error:
 								"Eroare: ID-ul furnizat este invalid. Trebuie sa fie un numar intreg pozitiv.",
 						},
 						400,
@@ -55,7 +63,7 @@ export class HelpRequestController {
 				) {
 					return c.json(
 						{
-							message: `Eroare: Task-ul cu ID-ul '${requestedId}' nu exista in sistem.`,
+							error: `Eroare: Task-ul cu ID-ul '${requestedId}' nu exista in sistem.`,
 						},
 						404,
 					);
@@ -72,7 +80,7 @@ export class HelpRequestController {
 				);
 				return c.json(
 					{
-						message:
+						error:
 							"Eroare interna a serverului. Va rugam incercati mai tarziu.",
 					},
 					500,
@@ -80,11 +88,11 @@ export class HelpRequestController {
 			}
 		})
 
-		.post("/:id/status", async (c) => {
+		.patch("/:id/status", async (c) => {
 			const requestId = Number(c.req.param("id"));
 			if (!Number.isInteger(requestId)) {
 				return c.json(
-					{ message: "'id' must be a valid numeric request identifier" },
+					{ error: "'id' must be a valid numeric request identifier" },
 					400,
 				);
 			}
@@ -93,7 +101,7 @@ export class HelpRequestController {
 			try {
 				body = await c.req.json();
 			} catch {
-				return c.json({ message: "Request body must be valid JSON" }, 400);
+				return c.json({ error: "Request body must be valid JSON" }, 400);
 			}
 
 			const { status } = body;
@@ -104,7 +112,7 @@ export class HelpRequestController {
 			) {
 				return c.json(
 					{
-						message: `'status' must be one of: ${[...VALID_STATUSES].join(", ")}`,
+						error: `'status' must be one of: ${[...VALID_STATUSES].join(", ")}`,
 					},
 					400,
 				);
@@ -118,11 +126,11 @@ export class HelpRequestController {
 				return c.json(updated, 200);
 			} catch (error) {
 				if (error instanceof NotFoundError) {
-					return c.json({ message: error.message }, 404);
+					return c.json({ error: error.message }, 404);
 				}
 
 				if (error instanceof InvalidStatusTransitionError) {
-					return c.json({ message: error.message }, 400);
+					return c.json({ error: error.message }, 409);
 				}
 
 				throw error;
