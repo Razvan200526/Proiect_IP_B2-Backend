@@ -6,14 +6,18 @@ import { loadControllers } from "../../src/utils/controller";
 import { HelpRequestService } from "../../src/services/HelpRequestService";
 import auth from "../../src/auth";
 
+//import { HelpRequestController } from "../../src/controllers/HelpRequestController";
+
 describe("GET /api/tasks/:id", () => {
-	beforeAll(async () => {
+    beforeAll(async () => {
 		const controllersPath = join(
 			(import.meta as any).dir,
 			"../../src/controllers",
 		);
 		await loadControllers(controllersPath);
 	});
+
+
 
 	it("ar trebui sa returneze 400 pentru TOATE tipurile de ID-uri invalide", async () => {
 		const badInputs = [

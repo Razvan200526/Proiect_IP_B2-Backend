@@ -24,9 +24,9 @@ export class HelpRequestController {
 	) {}
 
 	controller = new Hono()
-		.use("/", createValidationMiddleware(helpRequestInputSchema))
+		//.use("/", createValidationMiddleware(helpRequestInputSchema))
 
-		.post("/", async (c) => {
+		.post("/", createValidationMiddleware(helpRequestInputSchema), async (c) => {
 			try {
 				const body = await c.req.json();
 				const result = await this.helpRequestService.createHelpRequest(body);

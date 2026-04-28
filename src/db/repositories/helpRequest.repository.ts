@@ -23,12 +23,38 @@ export class HelpRequestRepository
 		IRepository<HelpRequest, CreateHelpRequestDTO, UpdateHelpRequestDTO, number>
 {
 	async create(data: CreateHelpRequestDTO): Promise<HelpRequest> {
-		const [newHelpRequest] = await db
-			.insert(helpRequests)
-			.values(data)
-			.returning();
-		return newHelpRequest;
-	}
+        // Folosim o TRANZACTIE pentru a respecta cerinta de Rollback
+        return await db.transaction(async (tx) => {
+            
+            // 1. Separam datele de locatie de restul datelor pentru task
+            const { 
+                location, 
+                locationCity, 
+                locationAddressText, 
+                ...taskData 
+            } = data as any;
+
+            // 2. Inseram datele principale in tabelul help_requests
+            const [newHelpRequest] = await tx
+                .insert(helpRequests)
+                .values(taskData)
+                .returning();
+
+            // 3. Daca am primit locatie, o salvam in tabelul ei separat (request_locations)
+            if (location) {
+                await tx.insert(requestLocations).values({
+                    helpRequestId: newHelpRequest.id,
+                    location: location,
+                    city: locationCity,
+                    addressText: locationAddressText,
+                });
+            }
+
+            // Daca totul a mers bine, tranzactia se inchide automat (Commit)
+            // Daca pica pasul 3, tranzactia anuleaza automat pasul 2 (Rollback)
+            return newHelpRequest;
+        });
+    }
 
 	async findById(id: number): Promise<HelpRequest | undefined> {
 		const [found] = await db

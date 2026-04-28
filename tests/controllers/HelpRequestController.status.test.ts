@@ -4,9 +4,7 @@ import { HelpRequestService } from "../../src/services/HelpRequestService";
 
 const Controller = () => (_target: unknown) => {};
 
-mock.module("../../src/utils/controller", () => ({
-	Controller,
-}));
+
 //trebuie neparat dupa mock)
 const { HelpRequestController } = await import(
 	"../../src/controllers/HelpRequestController"
