@@ -13,7 +13,12 @@ import {
 export type HelpRequest = typeof helpRequests.$inferSelect;
 export type RequestLocation = typeof requestLocations.$inferSelect;
 
-export type CreateHelpRequestDTO = typeof helpRequests.$inferInsert;
+// Extindem tipul de baza cu campurile optionale de locatie, pentru ca repository-ul sa le astepte
+export type CreateHelpRequestDTO = typeof helpRequests.$inferInsert & {
+	location?: { x: number; y: number };
+	locationCity?: string;
+	locationAddressText?: string;
+};
 
 export type UpdateHelpRequestDTO = Partial<CreateHelpRequestDTO>;
 
