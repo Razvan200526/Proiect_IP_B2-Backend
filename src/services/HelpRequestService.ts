@@ -101,8 +101,8 @@ export class HelpRequestService {
 			...helpRequest,
 			...(location !== undefined
 				? {
-						locationCity: location?.city ?? null,
-						locationAddressText: location?.addressText ?? null,
+						city: location?.city ?? null,
+						addressText: location?.addressText ?? null,
 						location: location?.location ?? null,
 					}
 				: {}),
