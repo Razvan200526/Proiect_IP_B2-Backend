@@ -44,8 +44,8 @@ export class HelpRequestRepository
 				await tx.insert(requestLocations).values({
 					helpRequestId: newHelpRequest.id,
 					location: location,
-					city: locationCity,
-					addressText: locationAddressText,
+					city: city,
+					addressText: addressText,
 				});
 			}
 
