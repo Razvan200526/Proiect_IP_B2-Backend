@@ -49,6 +49,10 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 		});
 
 		const body: any = await response.json();
+		// Verificarea speciala:
+		if (response.status === 500) {
+			throw new Error("EROARE BAZA DE DATE: " + JSON.stringify(body));
+		}
 		expect(response.status).toBe(201);
 		expect(body.id).toBeDefined();
 		createdTaskIds.push(body.id);
