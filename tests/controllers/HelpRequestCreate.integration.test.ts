@@ -49,7 +49,6 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 		});
 
 		const body: any = await response.json();
-		console.log("\n!!! AICI E EROAREA DIN DB !!!\n", body);
 		expect(response.status).toBe(201);
 		expect(body.id).toBeDefined();
 		createdTaskIds.push(body.id);
@@ -74,7 +73,6 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 		});
 
 		const body: any = await response.json();
-		console.log("\n!!! AICI E EROAREA DIN DB 2 !!!\n", body);
 		expect(response.status).toBe(201);
 		createdTaskIds.push(body.id);
 
