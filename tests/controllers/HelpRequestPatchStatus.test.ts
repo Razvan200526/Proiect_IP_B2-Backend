@@ -1,8 +1,28 @@
-import { describe, expect, it, beforeAll, spyOn } from "bun:test";
+import { describe, expect, it, beforeAll, spyOn, mock } from "bun:test";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import app from "../../src/app";
-import { loadControllers } from "../../src/utils/controller";
 import { HelpRequestService } from "../../src/services/HelpRequestService";
+import { Controller } from "../../src/di/decorators/controller";
+
+const loadControllers = async (dir: string) => {
+	const controllersDir = existsSync(dir)
+		? dir
+		: join(import.meta.dir, "../../src/controllers");
+	for (const file of readdirSync(controllersDir)) {
+		const fullPath = join(controllersDir, file);
+		if (statSync(fullPath).isDirectory()) {
+			await loadControllers(fullPath);
+		} else if (file.endsWith(".ts")) {
+			await import(fullPath);
+		}
+	}
+};
+
+mock.module("../../src/utils/controller", () => ({
+	Controller,
+	loadControllers,
+}));
 
 describe("PATCH /api/tasks/:id/status", () => {
 	beforeAll(async () => {
