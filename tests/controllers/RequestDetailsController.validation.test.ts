@@ -143,19 +143,12 @@ describe("POST /tasks/:id/details validation", () => {
 		expect(upsertDetails).toHaveBeenCalledTimes(1);
 		expect(upsertDetails).toHaveBeenCalledWith(10, validPayload);
 		const body: any = await response.json();
-		// Support both the legacy raw body shape and the new API envelope
-		if (body && body.data !== undefined) {
-			expectApiEnvelope(body, 200);
-			expect(body.data).toEqual({
-				helpRequestId: 10,
-				...validPayload,
-			});
-		} else {
-			expect(body).toEqual({
-				helpRequestId: 10,
-				...validPayload,
-			});
-		}
+
+		expectApiEnvelope(body, 200);
+		expect(body.data).toEqual({
+			helpRequestId: 10,
+			...validPayload,
+		});
 	});
 
 	test("returns 401 for a valid unauthenticated requestDetails body", async () => {
@@ -169,14 +162,10 @@ describe("POST /tasks/:id/details validation", () => {
 
 		expect(response.status).toBe(401);
 		const body: any = await response.json();
-		// Accept legacy `{ error: 'Unauthorized' }` or the new API envelope
-		if (body?.error) {
-			expect(body.error).toBe("Unauthorized");
-		} else {
-			expectApiEnvelope(body, 401);
-			expect(body.message).toBe("Unauthorized");
-			expect(body.isUnauthorized).toBe(true);
-		}
+
+		expectApiEnvelope(body, 401);
+		expect(body.message).toBe("Unauthorized");
+		expect(body.isUnauthorized).toBe(true);
 		expect(upsertDetails).not.toHaveBeenCalled();
 	});
 

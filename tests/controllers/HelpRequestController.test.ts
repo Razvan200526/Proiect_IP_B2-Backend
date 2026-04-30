@@ -45,13 +45,9 @@ describe("GET /api/tasks/:id", () => {
 		const body: any = await response.json();
 
 		expect(response.status).toBe(401);
-		if (body?.error) {
-			expect(body.error).toBe("Unauthorized");
-		} else {
-			expectApiEnvelope(body, 401);
-			expect(body.message).toBe("Unauthorized");
-			expect(body.isUnauthorized).toBe(true);
-		}
+		expectApiEnvelope(body, 401);
+		expect(body.message).toBe("Unauthorized");
+		expect(body.isUnauthorized).toBe(true);
 	});
 
 	it("ar trebui sa returneze 400 pentru TOATE tipurile de ID-uri invalide", async () => {
@@ -191,14 +187,11 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 	it("ar trebui sa returneze 401 pentru un request neautentificat", async () => {
 		const response = await app.request(`/api/tasks`);
 		const body: any = await response.json();
+
 		expect(response.status).toBe(401);
-		if (body?.error) {
-			expect(body.error).toBe("Unauthorized");
-		} else {
-			expectApiEnvelope(body, 401);
-			expect(body.message).toBe("Unauthorized");
-			expect(body.isUnauthorized).toBe(true);
-		}
+		expectApiEnvelope(body, 401);
+		expect(body.message).toBe("Unauthorized");
+		expect(body.isUnauthorized).toBe(true);
 	});
 
 	it("ar trebui sa returneze 400 daca pageSize este 0", async () => {
