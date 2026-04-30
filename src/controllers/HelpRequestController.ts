@@ -142,6 +142,11 @@ export class HelpRequestController {
 
 		.get("/:id", async (c) => {
 			try {
+				const session = await requireSession(c);
+				if (session instanceof Response) {
+					return session;
+				}
+
 				const idParam = c.req.param("id");
 				const requestedId = Number(idParam);
 
