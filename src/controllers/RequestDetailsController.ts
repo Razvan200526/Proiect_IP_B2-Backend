@@ -104,18 +104,25 @@ export class RequestDetailsController {
 							session.userId,
 						);
 					if (authorization.status === "notFound") {
-						return c.json({ error: "Task not found" }, 404);
+						return sendApiResponse(c, null, {
+							kind: "notFound",
+							message: "Task not found",
+						});
+						//return c.json({ error: "Task not found" }, 404);
 					}
 					if (authorization.status === "forbidden") {
-						return c.json({ error: "Forbidden" }, 403);
+						return sendApiResponse(c, null, {
+							statusCode: 403,
+							message: "Forbidden",
+						});
+						//return c.json({ error: "Forbidden" }, 403);
 					}
 					if (authorization.status === "invalidStatus") {
-						return c.json(
-							{
-								error: "Details can only be updated when task status is OPEN.",
-							},
-							409,
-						);
+						return sendApiResponse(c, null, {
+							statusCode: 409,
+							message:
+								'"Details can only be updated when task status is OPEN."',
+						});
 					}
 				}
 
@@ -133,13 +140,16 @@ export class RequestDetailsController {
 				}
 
 				if ("notFound" in result && result.notFound) {
-					return c.json({ error: "Task not found" }, 404);
+					return sendApiResponse(c, null, {
+						kind: "notFound",
+						message: "Task not found",
+					});
+					//return c.json({ error: "Task not found" }, 404);
 				}
 
-				return c.json(
-					"data" in result ? result.data : result,
-					"status" in result ? result.status : 200,
-				);
+				return sendApiResponse(c, "data" in result ? result.data : null, {
+					statusCode: "status" in result ? result.status : 200,
+				});
 			} catch (_error) {
 				return c.json({ error: "Could not update help request details" }, 500);
 			}
@@ -148,7 +158,11 @@ export class RequestDetailsController {
 		.delete("/:id/details", async (c) => {
 			const id = Number(c.req.param("id"));
 			if (!Number.isInteger(id)) {
-				return c.json({ error: "Invalid id" }, 400);
+				return sendApiResponse(c, null, {
+					statusCode: 400,
+					message: "Invalid id",
+				});
+				//return c.json({ error: "Invalid id" }, 400);
 			}
 
 			const session = await requireSession(c);
@@ -162,19 +176,25 @@ export class RequestDetailsController {
 						session.userId,
 					);
 				if (authorization.status === "notFound") {
-					return c.json({ message: "Task not found." }, 404);
+					return sendApiResponse(c, null, {
+						kind: "notFound",
+						message: "Task not found",
+					});
+					//return c.json({ message: "Task not found." }, 404);
 				}
 				if (authorization.status === "forbidden") {
-					return c.json({ message: "Forbidden" }, 403);
+					return sendApiResponse(c, null, {
+						statusCode: 403,
+						message: "Forbidden",
+					});
+					//return c.json({ message: "Forbidden" }, 403);
 				}
 				if (authorization.status === "invalidStatus") {
-					return c.json(
-						{
-							message:
-								"Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED.",
-						},
-						409,
-					);
+					return sendApiResponse(c, null, {
+						statusCode: 409,
+						message:
+							"Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED.",
+					});
 				}
 			}
 
