@@ -18,8 +18,7 @@ export function buildAccountDisabledEmail(params: {
 		minute: "2-digit",
 	});
 
-	const statusLabel =
-		status === "BLOCKED" ? "blocked" : "limited";
+	const statusLabel = status === "BLOCKED" ? "blocked" : "limited";
 
 	const subject = `Your account has been ${statusLabel}`;
 

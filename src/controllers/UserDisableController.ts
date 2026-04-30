@@ -82,8 +82,7 @@ export class UserDisableController {
 			async (c) => {
 				const { userId } = c.req.valid("param");
 
-				const history =
-					await this.userDisableService.getDisableHistory(userId);
+				const history = await this.userDisableService.getDisableHistory(userId);
 
 				return c.json(
 					{
