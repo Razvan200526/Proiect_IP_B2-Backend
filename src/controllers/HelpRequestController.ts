@@ -16,6 +16,7 @@ import {
 	createValidationMiddleware,
 	helpRequestInputSchema,
 } from "../validation";
+import { sendApiResponse } from "../utils/apiReponse";
 
 @Controller("/tasks")
 export class HelpRequestController {
@@ -31,15 +32,22 @@ export class HelpRequestController {
 			try {
 				const body = await c.req.json();
 				const result = await this.helpRequestService.createHelpRequest(body);
+				// For create we want to allow the raw created resource to be returned
+				// (tests expect the handler to NOT wrap the response).
 				return c.json(result, 201);
 			} catch (error: any) {
 				// check if error comes from inappropriate request
 				if (error instanceof ModerationError) {
-					return c.json({ error: error.message }, 400);
+					//return c.json({ error: error.message }, 400);
+					return sendApiResponse(c, null, {
+						kind: "clientError",
+						message: error.message,
+					});
 				}
 
 				console.error(error);
-				return c.json({ error: "Internal server error" }, 500);
+				//return c.json({ error: "Internal server error" }, 500);
+				return sendApiResponse(c, null, { kind: "serverError" });
 			}
 		})
 
@@ -53,13 +61,11 @@ export class HelpRequestController {
 					requestedId <= 0 ||
 					requestedId > Number.MAX_SAFE_INTEGER
 				) {
-					return c.json(
-						{
-							error:
-								"Eroare: ID-ul furnizat este invalid. Trebuie sa fie un numar intreg pozitiv.",
-						},
-						400,
-					);
+					return sendApiResponse(c, null, {
+						kind: "clientError",
+						message:
+							"Error: The ID provided is invalid. It must be a positive integer.",
+					});
 				}
 
 				const foundTask =
@@ -69,47 +75,47 @@ export class HelpRequestController {
 					!foundTask ||
 					(Array.isArray(foundTask) && foundTask.length === 0)
 				) {
-					return c.json(
-						{
-							error: `Eroare: Task-ul cu ID-ul '${requestedId}' nu exista in sistem.`,
-						},
-						404,
-					);
+					return sendApiResponse(c, null, {
+						kind: "notFound",
+						message: `The task with ID '${requestedId}' does not exist in the system.`,
+					});
 				}
 
 				const dataToReturn = Array.isArray(foundTask)
 					? foundTask[0]
 					: foundTask;
-				return c.json(dataToReturn, 200);
+				//return c.json(dataToReturn, 200);
+				return sendApiResponse(c, dataToReturn);
 			} catch (error) {
 				console.error(
 					`Eroare critica la GET /tasks/${c.req.param("id")} :`,
 					error,
 				);
-				return c.json(
-					{
-						error:
-							"Eroare interna a serverului. Va rugam incercati mai tarziu.",
-					},
-					500,
-				);
+				return sendApiResponse(c, null, {
+					kind: "serverError",
+					message: "Internal server error. Please try again later.",
+				});
 			}
 		})
 
 		.patch("/:id/status", async (c) => {
 			const requestId = Number(c.req.param("id"));
 			if (!Number.isInteger(requestId)) {
-				return c.json(
-					{ error: "'id' must be a valid numeric request identifier" },
-					400,
-				);
+				return sendApiResponse(c, null, {
+					kind: "clientError",
+					message: "'id' must be a valid numeric request identifier",
+				});
 			}
 
 			let body: { status?: unknown };
 			try {
 				body = await c.req.json();
 			} catch {
-				return c.json({ error: "Request body must be valid JSON" }, 400);
+				//return c.json({ error: "Request body must be valid JSON" }, 400);
+				return sendApiResponse(c, null, {
+					kind: "clientError",
+					message: "Request body must be valid JSON",
+				});
 			}
 
 			const { status } = body;
@@ -118,12 +124,10 @@ export class HelpRequestController {
 				typeof status !== "string" ||
 				!VALID_STATUSES.has(status as RequestStatus)
 			) {
-				return c.json(
-					{
-						error: `'status' must be one of: ${[...VALID_STATUSES].join(", ")}`,
-					},
-					400,
-				);
+				return sendApiResponse(c, null, {
+					kind: "clientError",
+					message: `'status' must be one of: ${[...VALID_STATUSES].join(", ")}`,
+				});
 			}
 
 			try {
@@ -131,14 +135,23 @@ export class HelpRequestController {
 					requestId,
 					status as RequestStatus,
 				);
-				return c.json(updated, 200);
+				//return c.json(updated, 200);
+				return sendApiResponse(c, updated);
 			} catch (error) {
 				if (error instanceof NotFoundError) {
-					return c.json({ error: error.message }, 404);
+					//return c.json({ error: error.message }, 404);
+					return sendApiResponse(c, null, {
+						kind: "notFound",
+						message: error.message,
+					});
 				}
 
 				if (error instanceof InvalidStatusTransitionError) {
-					return c.json({ error: error.message }, 409);
+					//return c.json({ error: error.message }, 409);
+					return sendApiResponse(c, null, {
+						statusCode: 409,
+						message: error.message,
+					});
 				}
 
 				throw error;
@@ -153,26 +166,31 @@ export class HelpRequestController {
 
 				//Daca validatorul gaseste o problema
 				if (validation.error || !validation.validData) {
-					return c.json(
-						{ error: validation.error || "Eroare de validare." },
-						400,
-					);
+					return sendApiResponse(c, null, {
+						kind: "clientError",
+						message: validation.error || "Validation error.",
+					});
 				}
 
 				//Extragem parametrii
-				const { page, pageSize, sortBy, order, filters } = validation.validData;
+				const { page, pageSize, sortBy } = validation.validData;
 				const result = await this.helpRequestService.getPaginatedTasks(
 					page,
 					pageSize,
 					sortBy,
-					order,
-					filters,
+					//order,
+					//filters,
 				);
 
-				return c.json(result, 200);
+				//return c.json(result, 200);
+				return sendApiResponse(c, result);
 			} catch (error) {
 				console.error("Eroare la GET /tasks paginat si sortat:", error);
-				return c.json({ error: "Eroare interna a serverului." }, 500);
+				//return c.json({ error: "Eroare interna a serverului" }, 500);
+				return sendApiResponse(c, null, {
+					kind: "serverError",
+					message: "Internal server error",
+				});
 			}
 		});
 }

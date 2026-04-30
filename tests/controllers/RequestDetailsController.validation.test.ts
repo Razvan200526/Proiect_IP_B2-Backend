@@ -45,7 +45,10 @@ describe("POST /tasks/:id/details validation", () => {
 		});
 
 		expect(response.status).toBe(400);
-		expect(await response.json()).toEqual({
+		const body: any = await response.json();
+		expect(body.statusCode).toBe(400);
+		expect(body.isClientError).toBe(true);
+		expect(body.data).toEqual({
 			errors: [
 				{
 					field: "languageNeeded",
@@ -67,7 +70,10 @@ describe("POST /tasks/:id/details validation", () => {
 		});
 
 		expect(response.status).toBe(400);
-		expect(await response.json()).toEqual({
+		const body: any = await response.json();
+		expect(body.statusCode).toBe(400);
+		expect(body.isClientError).toBe(true);
+		expect(body.data).toEqual({
 			errors: [
 				{
 					field: "body",
@@ -88,9 +94,29 @@ describe("POST /tasks/:id/details validation", () => {
 		expect(response.status).toBe(200);
 		expect(upsertDetails).toHaveBeenCalledTimes(1);
 		expect(upsertDetails).toHaveBeenCalledWith(10, validPayload);
-		expect(await response.json()).toEqual({
+		const body: any = await response.json();
+		expect(body.statusCode).toBe(200);
+		expect(body.data).toEqual({
 			helpRequestId: 10,
 			...validPayload,
 		});
+	});
+
+	test("smoke: response envelope complet pentru PUT /tasks/:id/details", async () => {
+		const response = await app.request("http://localhost/tasks/10/details", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(validPayload),
+		});
+
+		const body: any = await response.json();
+		expect(body).toHaveProperty("data");
+		expect(body).toHaveProperty("message");
+		expect(body).toHaveProperty("notFound");
+		expect(body).toHaveProperty("isUnauthorized");
+		expect(body).toHaveProperty("isServerError");
+		expect(body).toHaveProperty("isClientError");
+		expect(body).toHaveProperty("app");
+		expect(body).toHaveProperty("statusCode");
 	});
 });

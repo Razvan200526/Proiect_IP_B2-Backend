@@ -216,8 +216,8 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 		const getBody: any = await getResponse.json();
 
 		expect(getResponse.status).toBe(200);
-		expect(getBody.city).toBe("Bucuresti");
-		expect(getBody.addressText).toBe("Strada Victoriei");
-		expect(getBody.location).toEqual({ x: 44.42, y: 26.1 });
+		expect(getBody.data.city).toBe("Bucuresti");
+		expect(getBody.data.addressText).toBe("Strada Victoriei");
+		expect(getBody.data.location).toEqual({ x: 44.42, y: 26.1 });
 	});
 });

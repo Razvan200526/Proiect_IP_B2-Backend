@@ -5,6 +5,12 @@ import app from "../../src/app";
 import { loadControllers } from "../../src/utils/controller";
 import { HelpRequestService } from "../../src/services/HelpRequestService";
 import auth from "../../src/auth";
+import {
+	expectClientErrorApiResponse,
+	expectNotFoundApiResponse,
+	expectServerErrorApiResponse,
+	expectSuccessApiResponse,
+} from "./apiResponseAssertions";
 
 //import { HelpRequestController } from "../../src/controllers/HelpRequestController";
 
@@ -32,8 +38,10 @@ describe("GET /api/tasks/:id", () => {
 			const body: any = await response.json();
 
 			expect(response.status).toBe(400);
-			expect(body.error).toBe(
-				"Eroare: ID-ul furnizat este invalid. Trebuie sa fie un numar intreg pozitiv.",
+			expectClientErrorApiResponse(
+				body,
+				"Error: The ID provided is invalid. It must be a positive integer.",
+				400,
 			);
 		}
 	});
@@ -50,8 +58,10 @@ describe("GET /api/tasks/:id", () => {
 			const body: any = await response.json();
 
 			expect(response.status).toBe(404);
-			expect(body.error).toBe(
-				`Eroare: Task-ul cu ID-ul '${fakeId}' nu exista in sistem.`,
+			expectNotFoundApiResponse(
+				body,
+				`The task with ID '${fakeId}' does not exist in the system.`,
+				404,
 			);
 		} finally {
 			mockNotFound.mockRestore();
@@ -65,15 +75,19 @@ describe("GET /api/tasks/:id", () => {
 			"getHelpRequestById",
 		).mockRejectedValue(new Error("Baza de date a picat simulata!"));
 
-		const response = await app.request(`/api/tasks/1`);
-		const body: any = await response.json();
+		try {
+			const response = await app.request(`/api/tasks/1`);
+			const body: any = await response.json();
 
-		expect(response.status).toBe(500);
-		expect(body.error).toBe(
-			"Eroare interna a serverului. Va rugam incercati mai tarziu.",
-		);
-
-		mockError.mockRestore();
+			expect(response.status).toBe(500);
+			expectServerErrorApiResponse(
+				body,
+				"Internal server error. Please try again later.",
+				500,
+			);
+		} finally {
+			mockError.mockRestore();
+		}
 	});
 
 	it("ar trebui sa returneze 200 si datele pentru un task valid", async () => {
@@ -94,7 +108,26 @@ describe("GET /api/tasks/:id", () => {
 			const body: any = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(body).toMatchObject(mockTask);
+			expectSuccessApiResponse(body, mockTask, 200);
+		} finally {
+			mockFound.mockRestore();
+		}
+	});
+
+	it("smoke: envelope-ul complet este prezent pentru GET /tasks/:id", async () => {
+		const validId = "3";
+		const mockTask = { id: Number(validId), title: "Smoke task", status: "OPEN" };
+		const mockFound = spyOn(
+			HelpRequestService.prototype,
+			"getHelpRequestById",
+		).mockResolvedValue(mockTask as any);
+
+		try {
+			const response = await app.request(`/api/tasks/${validId}`);
+			const body: any = await response.json();
+
+			expect(response.status).toBe(200);
+			expectSuccessApiResponse(body, mockTask, 200);
 		} finally {
 			mockFound.mockRestore();
 		}
@@ -113,7 +146,9 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 
 	it("ar trebui sa returneze 401 pentru un request neautentificat", async () => {
 		const response = await app.request(`/api/tasks`);
+		const body: any = await response.json();
 		expect(response.status).toBe(401);
+		expect(body.error).toBe("Unauthorized");
 	});
 
 	it("ar trebui sa returneze 400 daca pageSize este 0", async () => {
@@ -127,7 +162,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expect(body.error).toContain("intre 1 si 100");
+		expectClientErrorApiResponse(body, "Eroare: 'pageSize' trebuie sa fie intre 1 si 100.", 400);
 	});
 
 	it("ar trebui sa returneze 400 daca page este numar negativ", async () => {
@@ -140,6 +175,9 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 			headers: { Authorization: "Bearer fake-test-token" },
 		});
 		expect(response.status).toBe(400);
+		const body: any = await response.json();
+		expect(body.statusCode).toBe(400);
+		expect(body.isClientError).toBe(true);
 	});
 
 	it("ar trebui sa returneze 400 daca pageSize depaseste maximul (100)", async () => {
@@ -152,6 +190,9 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 			headers: { Authorization: "Bearer fake-test-token" },
 		});
 		expect(response.status).toBe(400);
+		const body: any = await response.json();
+		expect(body.statusCode).toBe(400);
+		expect(body.isClientError).toBe(true);
 	});
 
 	it("ar trebui sa returneze 200 si valorile default (page 1, pageSize 10) cand nu sunt trimisi parametri", async () => {
@@ -174,10 +215,13 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 
 		expect(response.status).toBe(200);
 		const body: any = await response.json();
-		expect(body.meta.page).toBe(1);
-		expect(body.meta.pageSize).toBe(10);
-		expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {});
-
+		expectSuccessApiResponse(body, {
+			data: [{ id: 1, title: "Task Test", anonymousMode: false }],
+			meta: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+		});
+		expect(body.data.meta.page).toBe(1);
+		expect(body.data.meta.pageSize).toBe(10);
+		
 		serviceSpy.mockRestore();
 	});
 
@@ -201,11 +245,14 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 
 		expect(response.status).toBe(200);
 		const body: any = await response.json();
-		expect(body.data).toBeArray();
-		expect(body.data.length).toBe(0);
-		expect(body.meta.page).toBe(999);
-		expect(serviceSpy).toHaveBeenCalledWith(999, 10, "createdAt", "DESC", {});
-
+		expectSuccessApiResponse(body, {
+			data: [],
+			meta: { page: 999, pageSize: 10, total: 5, totalPages: 1 },
+		});
+		expect(body.data.data).toBeArray();
+		expect(body.data.data.length).toBe(0);
+		expect(body.data.meta.page).toBe(999);
+		
 		serviceSpy.mockRestore();
 	});
 
@@ -231,8 +278,8 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		expect(response.status).toBe(500);
 		const body: any = await response.json();
 
-		expect(body.error).toBe("Eroare interna a serverului.");
-		expect(body.error).not.toContain("parola bazei de date");
+		expectServerErrorApiResponse(body, "Internal server error", 500);
+		expect(body.message).not.toContain("parola bazei de date");
 
 		serviceSpy.mockRestore();
 
@@ -258,10 +305,13 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		expect(response.status).toBe(200);
 		const body: any = await response.json();
-		expect(body.meta.page).toBe(2);
-		expect(body.meta.pageSize).toBe(5);
-		expect(serviceSpy).toHaveBeenCalledWith(2, 5, "createdAt", "DESC", {});
-
+		expectSuccessApiResponse(body, {
+			data: [{ id: 6, title: "Task 6" }],
+			meta: { page: 2, pageSize: 5, total: 6, totalPages: 2 },
+		});
+		expect(body.data.meta.page).toBe(2);
+		expect(body.data.meta.pageSize).toBe(5);
+		
 		serviceSpy.mockRestore();
 	});
 
@@ -287,10 +337,16 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		const body: any = await response.json();
 
-		expect(body.data[0].requestDetails).not.toBeNull();
-		expect(body.data[1].requestDetails).toBeNull();
-		expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {});
-
+		expectSuccessApiResponse(body, {
+			data: [
+				{ id: 1, requestDetails: { notes: "Avem detalii" } },
+				{ id: 2, requestDetails: null },
+			],
+			meta: { page: 1, pageSize: 10, total: 2, totalPages: 1 },
+		});
+		expect(body.data.data[0].requestDetails).not.toBeNull();
+		expect(body.data.data[1].requestDetails).toBeNull();
+		
 		serviceSpy.mockRestore();
 	});
 
@@ -316,10 +372,16 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		const body: any = await response.json();
 
-		expect(body.data[0].requestedByUserId).toBeUndefined();
-		expect(body.data[1].requestedByUserId).toBe("user-123");
-		expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {});
-
+		expectSuccessApiResponse(body, {
+			data: [
+				{ id: 1, anonymousMode: true },
+				{ id: 2, anonymousMode: false, requestedByUserId: "user-123" },
+			],
+			meta: { page: 1, pageSize: 10, total: 2, totalPages: 1 },
+		});
+		expect(body.data.data[0].requestedByUserId).toBeUndefined();
+		expect(body.data.data[1].requestedByUserId).toBe("user-123");
+		
 		serviceSpy.mockRestore();
 	});
 });

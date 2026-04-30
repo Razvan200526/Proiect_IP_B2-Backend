@@ -7,6 +7,7 @@ import {
 	requestDetailsSchema,
 	validationMiddleware,
 } from "../validation";
+import { sendApiResponse } from "../utils/apiReponse";
 
 @Controller("/help")
 export class HelpController {
@@ -17,16 +18,16 @@ export class HelpController {
 		.post("/", async (c) => {
 			const body = await c.req.json();
 
-			return c.json(body);
+			return sendApiResponse(c, body);
 		})
 		.post("/helpRequest", async (c) => {
 			const body = await c.req.json();
 
-			return c.json(body);
+			return sendApiResponse(c, body);
 		})
 		.post("/requestDetails", async (c) => {
 			const body = await c.req.json();
 
-			return c.json(body);
+			return sendApiResponse(c, body);
 		});
 }

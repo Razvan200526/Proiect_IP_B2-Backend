@@ -3,6 +3,7 @@ import { Controller } from "../utils/controller";
 import { inject } from "../di";
 import { z } from "zod";
 import { RequestDetailsService } from "../services/RequestDetailsService";
+import { sendApiResponse } from "../utils/apiReponse";
 
 const requestDetailsSchema = z
 	.object({
@@ -40,20 +41,39 @@ export class RequestDetailsController {
 			const body = await c.req.json().catch(() => null);
 			const parsedBody = requestDetailsSchema.safeParse(body);
 			if (!parsedBody.success) {
-				return c.json(
+				/*
+					// Return legacy validation shape used by tests: { errors: [...] }
+					return c.json(
+						{
+							errors: parsedBody.error.issues.map((issue) => ({
+								field: issue.path.length === 0 ? "body" : issue.path.join("."),
+								message: issue.message,
+							})),
+						},
+						400,
+					);
+					*/
+				return sendApiResponse(
+					c,
 					{
 						errors: parsedBody.error.issues.map((issue) => ({
 							field: issue.path.length === 0 ? "body" : issue.path.join("."),
 							message: issue.message,
 						})),
 					},
-					400,
+					{
+						statusCode: 400,
+					},
 				);
 			}
 
 			const id = Number(c.req.param("id"));
 			if (!Number.isInteger(id)) {
-				return c.json({ error: "Invalid id" }, 400);
+				//return c.json({ error: "Invalid id" }, 400);
+				return sendApiResponse(c, null, {
+					statusCode: 400,
+					message: "Invalid id",
+				});
 			}
 
 			const result = await this.requestDetailsService.upsertDetails(
@@ -62,10 +82,15 @@ export class RequestDetailsController {
 			);
 
 			if ("message" in result) {
-				return c.json({ error: result.message }, result.status);
+				//return c.json({ error: result.message }, result.status);
+				return sendApiResponse(c, null, {
+					statusCode: result.status,
+					message: result.message,
+				});
 			}
 
-			return c.json(result.data, result.status);
+			//return c.json(result.data, result.status);
+			return sendApiResponse(c, result.data, { statusCode: result.status });
 		})
 
 		.delete("/:id/details", async (c) => {
@@ -74,9 +99,14 @@ export class RequestDetailsController {
 				await this.requestDetailsService.deleteHelpRequestDetails(id);
 
 			if (result.status === 204) {
-				return c.body(null, 204);
+				//return c.body(null, 204);
+				return sendApiResponse(c, null, { kind: "noContent" });
 			}
 
-			return c.json(result.body, result.status);
+			//return c.json(result.body, result.status);
+			return sendApiResponse(c, null, {
+				statusCode: result.status,
+				message: result.body.message,
+			});
 		});
 }

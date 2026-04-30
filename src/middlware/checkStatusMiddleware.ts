@@ -4,21 +4,24 @@ import type { AppEnv } from "../app";
 import { container } from "../di";
 import { UserAccessService } from "../services/UserAccessService";
 
+// This middleware historically returned simple JSON errors. Keep that
+// behaviour so tests and callers that expect `{ error: string }` keep
+// working.
 export const checkStatusMiddlware = async (c: Context<AppEnv>, next: Next) => {
-	const userAccessService = container.get<UserAccessService>(UserAccessService);
-	const user = c.get("user");
+  const userAccessService = container.get<UserAccessService>(UserAccessService);
+  const user = c.get("user");
 
-	if (!user) {
-		return c.json({ error: "Unauthorized" }, 401);
-	}
+  if (!user) {
+	return c.json({ error: "Unauthorized" }, 401);
+  }
 
-	const accountStatus = await userAccessService.checkUserStatus(user.id);
+  const accountStatus = await userAccessService.checkUserStatus(user.id);
 
-	if (accountStatus === "BLOCKED") {
-		return c.json({ error: "Unauthorized: Account is blocked" }, 403);
-	}
+  if (accountStatus === "BLOCKED") {
+	return c.json({ error: "Unauthorized: Account is blocked" }, 403);
+  }
 
-	await next();
+  await next();
 };
 
 export const checkStatus = createMiddleware<AppEnv>(checkStatusMiddlware);

@@ -79,6 +79,6 @@ describe("PUT /api/tasks/:id/details", () => {
 
 		expect(response.status).toBe(404);
 		const body: any = await response.json();
-		expect(body.error).toBe("Task not found");
+		expect(body.message).toBe("Task not found");
 	});
 });

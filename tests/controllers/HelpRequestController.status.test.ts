@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import { HelpRequestService } from "../../src/services/HelpRequestService";
+import {
+	expectClientErrorApiResponse,
+	expectNotFoundApiResponse,
+	expectSuccessApiResponse,
+} from "./apiResponseAssertions";
 
 //const Controller = () => (_target: unknown) => {};
 
-//trebuie neparat dupa mock)
+//trebuie neaparat dupa mock)
 const { HelpRequestController } = await import(
 	"../../src/controllers/HelpRequestController"
 );
@@ -71,7 +76,14 @@ describe("PATCH /tasks/:id/status", () => {
 	beforeEach(() => {
 		store = new Map<number, Task>();
 
-		const service = new HelpRequestService(repo as any, detailsRepo as any);
+		const moderationService = {
+			scanContent: () => ({ level: "CLEAN", reason: undefined }),
+		};
+		const service = new HelpRequestService(
+			repo as any,
+			detailsRepo as any,
+			moderationService as any,
+		);
 		const controller = new HelpRequestController(service as any);
 
 		app = new Hono();
@@ -85,7 +97,7 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(200);
-		expect(body).toMatchObject({ id: 10, status: "MATCHED" });
+		expectSuccessApiResponse(body, { id: 10, status: "MATCHED" }, 200);
 
 		const fromDb = store.get(10);
 		expect(fromDb?.status).toBe("MATCHED");
@@ -98,7 +110,7 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(200);
-		expect(body).toMatchObject({ id: 11, status: "COMPLETED" });
+		expectSuccessApiResponse(body, { id: 11, status: "COMPLETED" }, 200);
 
 		const fromDb = store.get(11);
 		expect(fromDb?.status).toBe("COMPLETED");
@@ -111,10 +123,7 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(409);
-		//trimitem neaparat eroarea mai departe
-		expect(body).toEqual({
-			error: "Invalid transition from OPEN to COMPLETED",
-		});
+		expectClientErrorApiResponse(body, "Invalid transition from OPEN to COMPLETED", 409);
 
 		const unchanged = store.get(12);
 		expect(unchanged?.status).toBe("OPEN");
@@ -127,9 +136,7 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(409);
-		expect(body).toEqual({
-			error: "Invalid transition from COMPLETED to MATCHED",
-		});
+		expectClientErrorApiResponse(body, "Invalid transition from COMPLETED to MATCHED", 409);
 
 		const unchanged = store.get(13);
 		expect(unchanged?.status).toBe("COMPLETED");
@@ -141,8 +148,23 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(404);
-		expect(body).toEqual({
-			error: "HelpRequest with id 999 not found",
-		});
+		expectNotFoundApiResponse(body, "HelpRequest with id 999 not found", 404);
+	});
+
+	test("smoke - response envelope complet pentru PATCH /tasks/:id/status", async () => {
+		seed({ id: 14, status: "OPEN" });
+
+		const response = await patchStatus(14, "MATCHED");
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(body).toHaveProperty("data");
+		expect(body).toHaveProperty("message");
+		expect(body).toHaveProperty("notFound");
+		expect(body).toHaveProperty("isUnauthorized");
+		expect(body).toHaveProperty("isServerError");
+		expect(body).toHaveProperty("isClientError");
+		expect(body).toHaveProperty("app");
+		expect(body).toHaveProperty("statusCode");
 	});
 });

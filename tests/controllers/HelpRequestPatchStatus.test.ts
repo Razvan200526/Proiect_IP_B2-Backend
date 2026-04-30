@@ -2,6 +2,10 @@ import { describe, expect, it, beforeAll } from "bun:test";
 import { join } from "node:path";
 import app from "../../src/app";
 import { loadControllers } from "../../src/utils/controller";
+import {
+	expectClientErrorApiResponse,
+	expectNotFoundApiResponse,
+} from "./apiResponseAssertions";
 
 describe("PATCH /api/tasks/:id/status", () => {
 	beforeAll(async () => {
@@ -23,7 +27,9 @@ describe("PATCH /api/tasks/:id/status", () => {
 		if (response.status === 200) {
 			const body: any = await response.json();
 			expect(response.status).toBe(200);
-			expect(body).toBeDefined();
+			expect(body.statusCode).toBe(200);
+			expect(body.data).toBeDefined();
+			expect(body.data.status).toBeDefined();
 		} else {
 			console.log(
 				`[Test 200] S-a intors ${response.status} din cauza starii DB curente (id=${validId}).`,
@@ -40,7 +46,7 @@ describe("PATCH /api/tasks/:id/status", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expect(body.error).toBe("'id' must be a valid numeric request identifier");
+		expectClientErrorApiResponse(body, "'id' must be a valid numeric request identifier");
 	});
 
 	it("returneaza 400 cand corpul requestului nu este un JSON valid", async () => {
@@ -52,7 +58,7 @@ describe("PATCH /api/tasks/:id/status", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expect(body.error).toBe("Request body must be valid JSON");
+		expectClientErrorApiResponse(body, "Request body must be valid JSON");
 	});
 
 	it("returneaza 400 cand statusul lipseste sau este complet invalid", async () => {
@@ -64,7 +70,7 @@ describe("PATCH /api/tasks/:id/status", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expect(body.error).toContain("'status' must be one of:");
+		expectClientErrorApiResponse(body, "'status' must be one of: OPEN, MATCHED, IN_PROGRESS, COMPLETED, CANCELLED, REJECTED");
 	});
 
 	it("returneaza 404 cand task-ul nu exista in baza de date", async () => {
@@ -76,7 +82,7 @@ describe("PATCH /api/tasks/:id/status", () => {
 
 		expect(response.status).toBe(404);
 		const body: any = await response.json();
-		expect(body.error).toBeDefined();
+		expectNotFoundApiResponse(body, "HelpRequest with id 999999 not found");
 	});
 
 	it("returneaza 409 pentru o tranzitie invalida de status (ex. pe un task deja finalizat)", async () => {
@@ -89,12 +95,34 @@ describe("PATCH /api/tasks/:id/status", () => {
 
 		if (response.status === 409) {
 			const body: any = await response.json();
-			expect(response.status).toBe(409);
-			expect(body.error).toBeDefined();
+			expect(body.statusCode).toBe(409);
+			expect(body.message).toBeDefined();
+			expect(body.data).toBeNull();
+			expect(body.isClientError).toBe(true);
 		} else {
 			console.log(
 				`[Test 409] Baza de date a permis tranzitia sau task-ul nu a fost gasit. S-a intors: ${response.status}`,
 			);
+		}
+	});
+
+	it("smoke: envelope-ul complet este prezent pentru PATCH /tasks/:id/status", async () => {
+		const response = await app.request(`/api/tasks/1/status`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ status: "OPEN" }),
+		});
+
+		if (response.status === 200 || response.status === 409 || response.status === 404) {
+			const body: any = await response.json();
+			expect(body).toHaveProperty("data");
+			expect(body).toHaveProperty("message");
+			expect(body).toHaveProperty("notFound");
+			expect(body).toHaveProperty("isUnauthorized");
+			expect(body).toHaveProperty("isServerError");
+			expect(body).toHaveProperty("isClientError");
+			expect(body).toHaveProperty("app");
+			expect(body).toHaveProperty("statusCode");
 		}
 	});
 });
