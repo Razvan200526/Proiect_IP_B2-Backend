@@ -1,8 +1,17 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	spyOn,
+	test,
+} from "bun:test";
 import { Hono } from "hono";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import "../../src/app";
+import auth from "../../src/auth";
 import { Controller } from "../../src/di/decorators/controller";
 
 const loadControllers = async (dir: string) => {
@@ -38,8 +47,11 @@ const validPayload = {
 describe("POST /tasks/:id/details validation", () => {
 	let app: Hono;
 	let upsertDetails: ReturnType<typeof mock>;
+	let authSpy: ReturnType<typeof spyOn> | undefined;
 
 	beforeEach(() => {
+		authSpy?.mockRestore();
+		authSpy = undefined;
 		upsertDetails = mock(async (id: number, body: unknown) => ({
 			notFound: false,
 			data: {
@@ -54,6 +66,10 @@ describe("POST /tasks/:id/details validation", () => {
 
 		app = new Hono();
 		app.route("/tasks", controller.controller);
+	});
+
+	afterEach(() => {
+		authSpy?.mockRestore();
 	});
 
 	test("returns 400 for languageNeeded longer than 50 on the real route", async () => {
@@ -101,6 +117,11 @@ describe("POST /tasks/:id/details validation", () => {
 	});
 
 	test("lets a valid requestDetails body reach the handler without wrapping the response", async () => {
+		authSpy = spyOn(auth.api, "getSession").mockResolvedValue({
+			user: { id: "user-123" } as any,
+			session: { id: "session-123", userId: "user-123" } as any,
+		});
+
 		const response = await app.request("http://localhost/tasks/10/details", {
 			method: "PUT",
 			headers: { "Content-Type": "application/json" },
@@ -114,5 +135,18 @@ describe("POST /tasks/:id/details validation", () => {
 			helpRequestId: 10,
 			...validPayload,
 		});
+	});
+
+	test("returns 401 for a valid unauthenticated requestDetails body", async () => {
+		authSpy = spyOn(auth.api, "getSession").mockResolvedValue(null as any);
+
+		const response = await app.request("http://localhost/tasks/10/details", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(validPayload),
+		});
+
+		expect(response.status).toBe(401);
+		expect(upsertDetails).not.toHaveBeenCalled();
 	});
 });

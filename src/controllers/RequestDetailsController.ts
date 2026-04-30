@@ -30,16 +30,10 @@ const requestDetailsSchema = z
 	})
 	.strict();
 
-const getOptionalSession = async (c: any) => {
+const requireSession = async (c: any) => {
 	const existingSession = c.get("session");
 	if (existingSession) {
 		return existingSession;
-	}
-
-	const hasAuthHeaders =
-		c.req.raw.headers.has("authorization") || c.req.raw.headers.has("cookie");
-	if (!hasAuthHeaders) {
-		return undefined;
 	}
 
 	const response = await authMiddlware(c, async () => {});
@@ -79,11 +73,11 @@ export class RequestDetailsController {
 					return c.json({ error: "Invalid id" }, 400);
 				}
 
-				const session = await getOptionalSession(c);
-				if (session && this.requestDetailsService.authorizeDetailsMutation) {
-					if (session instanceof Response) {
-						return session;
-					}
+				const session = await requireSession(c);
+				if (session instanceof Response) {
+					return session;
+				}
+				if (this.requestDetailsService.authorizeDetailsMutation) {
 					const authorization =
 						await this.requestDetailsService.authorizeDetailsMutation(
 							id,
@@ -133,11 +127,11 @@ export class RequestDetailsController {
 				return c.json({ error: "Invalid id" }, 400);
 			}
 
-			const session = await getOptionalSession(c);
-			if (session && this.requestDetailsService.authorizeDetailsMutation) {
-				if (session instanceof Response) {
-					return session;
-				}
+			const session = await requireSession(c);
+			if (session instanceof Response) {
+				return session;
+			}
+			if (this.requestDetailsService.authorizeDetailsMutation) {
 				const authorization =
 					await this.requestDetailsService.authorizeDetailsMutation(
 						id,

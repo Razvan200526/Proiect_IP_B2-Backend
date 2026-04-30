@@ -22,16 +22,10 @@ type ExistingHelpRequestResponse = Exclude<HelpRequestResponse, undefined>;
 
 const VALID_STATUSES = new Set<RequestStatus>(requestStatusEnum.enumValues);
 
-const getOptionalSession = async (c: any) => {
+const requireSession = async (c: any) => {
 	const existingSession = c.get("session");
 	if (existingSession) {
 		return existingSession;
-	}
-
-	const hasAuthHeaders =
-		c.req.raw.headers.has("authorization") || c.req.raw.headers.has("cookie");
-	if (!hasAuthHeaders) {
-		return undefined;
 	}
 
 	const response = await authMiddlware(c, async () => {});
@@ -79,7 +73,7 @@ export class HelpRequestController {
 
 		.post("/", async (c) => {
 			try {
-				const session = await getOptionalSession(c);
+				const session = await requireSession(c);
 				if (session instanceof Response) {
 					return session;
 				}
@@ -110,7 +104,7 @@ export class HelpRequestController {
 
 		.get("/", async (c) => {
 			try {
-				const session = await getOptionalSession(c);
+				const session = await requireSession(c);
 				if (session instanceof Response) {
 					return session;
 				}
@@ -230,7 +224,7 @@ export class HelpRequestController {
 			}
 
 			try {
-				const session = await getOptionalSession(c);
+				const session = await requireSession(c);
 				if (session instanceof Response) {
 					return session;
 				}
