@@ -32,9 +32,8 @@ export class HelpRequestController {
 			try {
 				const body = await c.req.json();
 				const result = await this.helpRequestService.createHelpRequest(body);
-				// For create we want to allow the raw created resource to be returned
-				// (tests expect the handler to NOT wrap the response).
-				return c.json(result, 201);
+				//return c.json(result, 201);
+				return sendApiResponse(c, result, { kind: "created" });
 			} catch (error: any) {
 				// check if error comes from inappropriate request
 				if (error instanceof ModerationError) {
