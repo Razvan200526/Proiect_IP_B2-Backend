@@ -11,7 +11,7 @@ import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 import { validateTasksQuery } from "../utils/validators/queryValidator";
 import {
 	createValidationMiddleware,
-	helpRequestInputSchema,
+	helpRequestCreateInputSchema,
 } from "../validation";
 
 type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
@@ -21,6 +21,26 @@ type HelpRequestResponse = Awaited<
 type ExistingHelpRequestResponse = Exclude<HelpRequestResponse, undefined>;
 
 const VALID_STATUSES = new Set<RequestStatus>(requestStatusEnum.enumValues);
+
+const getOptionalSession = async (c: any) => {
+	const existingSession = c.get("session");
+	if (existingSession) {
+		return existingSession;
+	}
+
+	const hasAuthHeaders =
+		c.req.raw.headers.has("authorization") || c.req.raw.headers.has("cookie");
+	if (!hasAuthHeaders) {
+		return undefined;
+	}
+
+	const response = await authMiddlware(c, async () => {});
+	if (response) {
+		return response;
+	}
+
+	return c.get("session");
+};
 
 const removeClientOwnerFields = (
 	body: CreateHelpRequestDTO & { userId?: unknown },
@@ -55,20 +75,27 @@ export class HelpRequestController {
 	) {}
 
 	controller = new Hono<AppEnv>()
-		.use("*", authMiddlware)
-		.use("/", createValidationMiddleware(helpRequestInputSchema))
+		.use("/", createValidationMiddleware(helpRequestCreateInputSchema))
 
 		.post("/", async (c) => {
 			try {
-				const session = c.get("session");
+				const session = await getOptionalSession(c);
+				if (session instanceof Response) {
+					return session;
+				}
 				const body = (await c.req.json()) as CreateHelpRequestDTO & {
 					userId?: unknown;
 				};
 				const safeBody = removeClientOwnerFields(body);
-				const result = await this.helpRequestService.createHelpRequest({
-					...safeBody,
-					requestedByUserId: session.userId,
-				});
+				const createData = session
+					? {
+							...safeBody,
+							requestedByUserId: session.userId,
+						}
+					: safeBody;
+				const result = await this.helpRequestService.createHelpRequest(
+					createData as CreateHelpRequestDTO,
+				);
 				return c.json(result, 201);
 			} catch (error: any) {
 				// check if error comes from inappropriate request
@@ -83,6 +110,14 @@ export class HelpRequestController {
 
 		.get("/", async (c) => {
 			try {
+				const session = await getOptionalSession(c);
+				if (session instanceof Response) {
+					return session;
+				}
+				if (!session) {
+					return c.json({ error: "Unauthorized" }, 401);
+				}
+
 				//Apelam validatorul nostru curat, trimitandu-i toti parametrii din URL
 				const validation = validateTasksQuery(c.req.query());
 
@@ -195,25 +230,36 @@ export class HelpRequestController {
 			}
 
 			try {
-				const session = c.get("session");
+				const session = await getOptionalSession(c);
+				if (session instanceof Response) {
+					return session;
+				}
 				const task =
 					await this.helpRequestService.getHelpRequestForAuthorization(
 						requestId,
 					);
 				if (!task) {
 					return c.json(
-						{ message: `HelpRequest with id ${requestId} not found` },
+						{ error: `HelpRequest with id ${requestId} not found` },
 						404,
 					);
 				}
 
-				const assignment =
-					await this.helpRequestService.getAssignmentAuthorization(requestId);
-				const isOwner = task.requestedByUserId === session.userId;
+				const assignment = session
+					? await this.helpRequestService.getAssignmentAuthorization(requestId)
+					: undefined;
+				const isOwner =
+					"requestedByUserId" in task &&
+					task.requestedByUserId === session?.userId;
 				const isAssignedVolunteer =
-					assignment?.volunteerUserId === session.userId;
+					assignment?.volunteerUserId === session?.userId;
 
-				if (!isOwner && !isAssignedVolunteer) {
+				if (
+					session &&
+					(task.requestedByUserId || assignment) &&
+					!isOwner &&
+					!isAssignedVolunteer
+				) {
 					return c.json({ message: "Forbidden" }, 403);
 				}
 

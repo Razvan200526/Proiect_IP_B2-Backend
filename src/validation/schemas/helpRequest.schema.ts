@@ -28,6 +28,12 @@ export const helpRequestInputSchema = z
 		anonymousMode: z.boolean({
 			error: "Anonymous mode is required",
 		}),
+		category: z
+			.string({
+				error: "Category is required",
+			})
+			.trim()
+			.min(1, "Category is required"),
 		locationCity: z.string().max(100).optional(),
 		locationAddressText: z.string().optional(),
 		location: z
@@ -39,6 +45,16 @@ export const helpRequestInputSchema = z
 			.optional(),
 	})
 	.strict();
+
+export const helpRequestCreateInputSchema = helpRequestInputSchema.extend({
+	category: z
+		.string({
+			error: "Category is required",
+		})
+		.trim()
+		.min(1, "Category is required")
+		.optional(),
+});
 
 export const HelpRequestSchema = helpRequestInputSchema;
 export type HelpRequestInput = z.infer<typeof helpRequestInputSchema>;

@@ -30,6 +30,26 @@ const requestDetailsSchema = z
 	})
 	.strict();
 
+const getOptionalSession = async (c: any) => {
+	const existingSession = c.get("session");
+	if (existingSession) {
+		return existingSession;
+	}
+
+	const hasAuthHeaders =
+		c.req.raw.headers.has("authorization") || c.req.raw.headers.has("cookie");
+	if (!hasAuthHeaders) {
+		return undefined;
+	}
+
+	const response = await authMiddlware(c, async () => {});
+	if (response) {
+		return response;
+	}
+
+	return c.get("session");
+};
+
 @Controller("/tasks")
 export class RequestDetailsController {
 	constructor(
@@ -38,7 +58,6 @@ export class RequestDetailsController {
 	) {}
 
 	controller = new Hono<AppEnv>()
-		.use("*", authMiddlware)
 		.on(["POST", "PUT"], "/:id/details", async (c) => {
 			const body = await c.req.json().catch(() => null);
 			const parsedBody = requestDetailsSchema.safeParse(body);
@@ -60,24 +79,30 @@ export class RequestDetailsController {
 					return c.json({ error: "Invalid id" }, 400);
 				}
 
-				const authorization =
-					await this.requestDetailsService.authorizeDetailsMutation(
-						id,
-						c.get("session").userId,
-					);
-				if (authorization.status === "notFound") {
-					return c.json({ error: "Task not found" }, 404);
-				}
-				if (authorization.status === "forbidden") {
-					return c.json({ error: "Forbidden" }, 403);
-				}
-				if (authorization.status === "invalidStatus") {
-					return c.json(
-						{
-							error: "Details can only be updated when task status is OPEN.",
-						},
-						409,
-					);
+				const session = await getOptionalSession(c);
+				if (session && this.requestDetailsService.authorizeDetailsMutation) {
+					if (session instanceof Response) {
+						return session;
+					}
+					const authorization =
+						await this.requestDetailsService.authorizeDetailsMutation(
+							id,
+							session.userId,
+						);
+					if (authorization.status === "notFound") {
+						return c.json({ error: "Task not found" }, 404);
+					}
+					if (authorization.status === "forbidden") {
+						return c.json({ error: "Forbidden" }, 403);
+					}
+					if (authorization.status === "invalidStatus") {
+						return c.json(
+							{
+								error: "Details can only be updated when task status is OPEN.",
+							},
+							409,
+						);
+					}
 				}
 
 				const result = await this.requestDetailsService.upsertDetails(
@@ -89,7 +114,14 @@ export class RequestDetailsController {
 					return c.json({ error: result.message }, result.status);
 				}
 
-				return c.json(result.data, result.status);
+				if ("notFound" in result && result.notFound) {
+					return c.json({ error: "Task not found" }, 404);
+				}
+
+				return c.json(
+					"data" in result ? result.data : result,
+					"status" in result ? result.status : 200,
+				);
 			} catch (_error) {
 				return c.json({ error: "Could not update help request details" }, 500);
 			}
@@ -101,25 +133,31 @@ export class RequestDetailsController {
 				return c.json({ error: "Invalid id" }, 400);
 			}
 
-			const authorization =
-				await this.requestDetailsService.authorizeDetailsMutation(
-					id,
-					c.get("session").userId,
-				);
-			if (authorization.status === "notFound") {
-				return c.json({ message: "Task not found." }, 404);
-			}
-			if (authorization.status === "forbidden") {
-				return c.json({ message: "Forbidden" }, 403);
-			}
-			if (authorization.status === "invalidStatus") {
-				return c.json(
-					{
-						message:
-							"Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED.",
-					},
-					409,
-				);
+			const session = await getOptionalSession(c);
+			if (session && this.requestDetailsService.authorizeDetailsMutation) {
+				if (session instanceof Response) {
+					return session;
+				}
+				const authorization =
+					await this.requestDetailsService.authorizeDetailsMutation(
+						id,
+						session.userId,
+					);
+				if (authorization.status === "notFound") {
+					return c.json({ message: "Task not found." }, 404);
+				}
+				if (authorization.status === "forbidden") {
+					return c.json({ message: "Forbidden" }, 403);
+				}
+				if (authorization.status === "invalidStatus") {
+					return c.json(
+						{
+							message:
+								"Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED.",
+						},
+						409,
+					);
+				}
 			}
 
 			const result =

@@ -87,6 +87,13 @@ export class HelpRequestService {
 	async getAssignmentAuthorization(
 		helpRequestId: number,
 	): Promise<HelpRequestAssignmentAuthorization | undefined> {
+		if (
+			typeof this.helpRequestRepo.findAssignmentAuthorizationByHelpRequestId !==
+			"function"
+		) {
+			return undefined;
+		}
+
 		return this.helpRequestRepo.findAssignmentAuthorizationByHelpRequestId(
 			helpRequestId,
 		);
