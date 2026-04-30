@@ -10,6 +10,7 @@ import type {
 import { inject } from "../di";
 import { logger } from "../utils/logger";
 import { NotFoundError } from "../utils/Errors";
+import { github } from "better-auth";
 
 @Service()
 export class ProfileService {

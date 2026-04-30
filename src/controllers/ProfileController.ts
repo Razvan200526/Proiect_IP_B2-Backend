@@ -7,7 +7,7 @@ import {
 import { authMiddlware } from "../middlware/authMiddleware";
 import { sendApiResponse } from "../utils/apiReponse";
 import { logger } from "../utils/logger";
-import { ProfileService } from "../services/ProfileService";
+import { ProfileService } from "../services/profileService";
 import { inject } from "../di";
 import { NotFoundError } from "../utils/Errors";
 
