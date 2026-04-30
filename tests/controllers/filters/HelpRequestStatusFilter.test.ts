@@ -11,7 +11,6 @@ import {
 } from "../apiResponseAssertions";
 
 beforeAll(async () => {
-	// process.cwd() returnează mereu folderul principal al proiectului (ALIVE)
 	await loadControllers(join(process.cwd(), "/src/controllers"));
 });
 
