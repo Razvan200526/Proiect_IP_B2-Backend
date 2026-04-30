@@ -1,6 +1,9 @@
 import { z } from "zod";
-
-import { requestStatusEnum, urgencyLevelEnum } from "../../db/enums";
+import {
+	requestStatusEnum,
+	urgencyLevelEnum,
+	helpRequestCategoryEnum,
+} from "../../db/enums";
 
 export const helpRequestInputSchema = z
 	.object({
@@ -28,33 +31,29 @@ export const helpRequestInputSchema = z
 		anonymousMode: z.boolean({
 			error: "Anonymous mode is required",
 		}),
-		category: z
-			.string({
-				error: "Category is required",
-			})
-			.trim()
-			.min(1, "Category is required"),
-		locationCity: z.string().max(100).optional(),
-		locationAddressText: z.string().optional(),
+
+		city: z.string().max(100).optional(),
+		addressText: z.string().optional(),
+
+		// MODIFICARE 1: Categoria este acum obligatorie si de tip enum
+		category: z.enum(helpRequestCategoryEnum.enumValues, {
+			error: "Category is required",
+		}),
+
+		// MODIFICARE 2: skillsNeeded adăugat ca array de string-uri validate
+		skillsNeeded: z.array(z.string().trim().min(1)).optional(),
+
+		// MODIFICARE 3: Am sters .optional() de la location. Acum e OBLIGATORIU!
 		location: z
 			.object({
 				x: z.number(),
 				y: z.number(),
 			})
-			.strict()
-			.optional(),
+			.strict(),
 	})
 	.strict();
 
-export const helpRequestCreateInputSchema = helpRequestInputSchema.extend({
-	category: z
-		.string({
-			error: "Category is required",
-		})
-		.trim()
-		.min(1, "Category is required")
-		.optional(),
-});
+export const helpRequestCreateInputSchema = helpRequestInputSchema;
 
 export const HelpRequestSchema = helpRequestInputSchema;
 export type HelpRequestInput = z.infer<typeof helpRequestInputSchema>;

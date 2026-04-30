@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import { HelpRequestService } from "../../src/services/HelpRequestService";
 import { existsSync, readdirSync, statSync } from "node:fs";
@@ -24,6 +24,9 @@ mock.module("../../src/utils/controller", () => ({
 	Controller,
 	loadControllers,
 }));
+
+//const Controller = () => (_target: unknown) => {};
+
 //trebuie neparat dupa mock)
 const { HelpRequestController } = await import(
 	"../../src/controllers/HelpRequestController"
