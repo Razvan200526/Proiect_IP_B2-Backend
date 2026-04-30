@@ -6,6 +6,7 @@ import { loadControllers } from "../../src/utils/controller";
 import { db } from "../../src/db";
 import { helpRequests, requestLocations } from "../../src/db/requests";
 import { eq } from "drizzle-orm";
+import { expectApiEnvelope } from "./apiResponseAssertions";
 //import { HelpRequestController } from "../../src/controllers/HelpRequestController";
 
 beforeAll(async () => {
@@ -50,8 +51,9 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 
 		const body: any = await response.json();
 		expect(response.status).toBe(201);
-		expect(body.id).toBeDefined();
-		createdTaskIds.push(body.id);
+		expectApiEnvelope(body, 201);
+		expect(body.data.id).toBeDefined();
+		createdTaskIds.push(body.data.id);
 	});
 
 	it("POST /tasks cu skillsNeeded ['sofer', 'traducator'] -> 201 + persistat in DB", async () => {
@@ -74,12 +76,13 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 
 		const body: any = await response.json();
 		expect(response.status).toBe(201);
-		createdTaskIds.push(body.id);
+		expectApiEnvelope(body, 201);
+		createdTaskIds.push(body.data.id);
 
 		const [dbTask] = await db
 			.select()
 			.from(helpRequests)
-			.where(eq(helpRequests.id, body.id));
+			.where(eq(helpRequests.id, body.data.id));
 
 		expect(dbTask.skillsNeeded).toEqual(["sofer", "traducator"]);
 	});
@@ -103,7 +106,9 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
 
-		const categoryError = body.errors.find((e: any) => e.field === "category");
+		const categoryError = (body.data?.errors ?? body.errors).find(
+			(e: any) => e.field === "category",
+		);
 		expect(categoryError).toBeDefined();
 		expect(categoryError.message).toBe("Category is required");
 	});
@@ -126,7 +131,11 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expect(body.errors.some((e: any) => e.field === "location")).toBe(true);
+		expect(
+			(body.data?.errors ?? body.errors).some(
+				(e: any) => e.field === "location",
+			),
+		).toBe(true);
 	});
 
 	it("POST /tasks cu location valida -> randul din request_locations creat cu helpRequestId corect", async () => {
@@ -150,7 +159,8 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 
 		expect(response.status).toBe(201);
 		const body: any = await response.json();
-		const newTaskId = body.id;
+		expectApiEnvelope(body, 201);
+		const newTaskId = body.data.id;
 		createdTaskIds.push(newTaskId);
 
 		const [locationRecord] = await db
@@ -210,9 +220,10 @@ describe("POST /api/tasks (Integration BE1-34)", () => {
 		});
 		expect(postResponse.status).toBe(201);
 		const postBody: any = await postResponse.json();
-		createdTaskIds.push(postBody.id);
+		expectApiEnvelope(postBody, 201);
+		createdTaskIds.push(postBody.data.id);
 
-		const getResponse = await app.request(`/api/tasks/${postBody.id}`);
+		const getResponse = await app.request(`/api/tasks/${postBody.data.id}`);
 		const getBody: any = await getResponse.json();
 
 		expect(getResponse.status).toBe(200);

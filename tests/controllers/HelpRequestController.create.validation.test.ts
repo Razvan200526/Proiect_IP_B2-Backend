@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { Hono } from "hono";
+import { expectApiEnvelope } from "./apiResponseAssertions";
 
 //const Controller = () => (_target: unknown) => {};
 
@@ -46,38 +47,19 @@ describe("POST /tasks validation", () => {
 		});
 
 		expect(response.status).toBe(400);
-		expect(await response.json()).toEqual({
-			errors: [
-				{
-					field: "title",
-					message: "Title is required",
-				},
-				{
-					field: "description",
-					message: "Description is required",
-				},
-				{
-					field: "urgency",
-					message: "Urgency is required",
-				},
-				{
-					field: "status",
-					message: "Status is required",
-				},
-				{
-					field: "anonymousMode",
-					message: "Anonymous mode is required",
-				},
-				{
-					field: "category",
-					message: "Category is required",
-				},
-				{
-					field: "location",
-					message: "Invalid input: expected object, received undefined",
-				},
-			],
-		});
+		const body: any = await response.json();
+		expect(body.errors ?? body.data?.errors).toEqual([
+			{ field: "title", message: "Title is required" },
+			{ field: "description", message: "Description is required" },
+			{ field: "urgency", message: "Urgency is required" },
+			{ field: "status", message: "Status is required" },
+			{ field: "anonymousMode", message: "Anonymous mode is required" },
+			{ field: "category", message: "Category is required" },
+			{
+				field: "location",
+				message: "Invalid input: expected object, received undefined",
+			},
+		]);
 		expect(createHelpRequest).not.toHaveBeenCalled();
 	});
 
@@ -92,14 +74,10 @@ describe("POST /tasks validation", () => {
 		});
 
 		expect(response.status).toBe(400);
-		expect(await response.json()).toEqual({
-			errors: [
-				{
-					field: "body",
-					message: 'Unrecognized key: "extraField"',
-				},
-			],
-		});
+		const body: any = await response.json();
+		expect(body.errors ?? body.data?.errors).toEqual([
+			{ field: "body", message: 'Unrecognized key: "extraField"' },
+		]);
 		expect(createHelpRequest).not.toHaveBeenCalled();
 	});
 
@@ -113,7 +91,9 @@ describe("POST /tasks validation", () => {
 		expect(response.status).toBe(201);
 		expect(createHelpRequest).toHaveBeenCalledTimes(1);
 		expect(createHelpRequest).toHaveBeenCalledWith(validPayload);
-		expect(await response.json()).toEqual({
+		const body: any = await response.json();
+		expectApiEnvelope(body, 201);
+		expect(body.data).toEqual({
 			id: 101,
 			...validPayload,
 		});

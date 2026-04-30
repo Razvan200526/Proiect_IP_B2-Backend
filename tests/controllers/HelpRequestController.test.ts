@@ -8,6 +8,7 @@ import auth from "../../src/auth";
 import {
 	expectClientErrorApiResponse,
 	expectNotFoundApiResponse,
+	expectApiEnvelope,
 	expectServerErrorApiResponse,
 	expectSuccessApiResponse,
 } from "./apiResponseAssertions";
@@ -152,7 +153,13 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		const response = await app.request(`/api/tasks`);
 		const body: any = await response.json();
 		expect(response.status).toBe(401);
-		expect(body.error).toBe("Unauthorized");
+		if (body?.error) {
+			expect(body.error).toBe("Unauthorized");
+		} else {
+			expectApiEnvelope(body, 401);
+			expect(body.message).toBe("Unauthorized");
+			expect(body.isUnauthorized).toBe(true);
+		}
 	});
 
 	it("ar trebui sa returneze 400 daca pageSize este 0", async () => {
