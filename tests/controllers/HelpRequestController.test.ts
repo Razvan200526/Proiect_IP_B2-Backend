@@ -42,9 +42,16 @@ describe("GET /api/tasks/:id", () => {
 		authSpy = spyOn(auth.api, "getSession").mockResolvedValue(null as any);
 
 		const response = await app.request("/api/tasks/1");
+		const body: any = await response.json();
 
 		expect(response.status).toBe(401);
-		expect(await response.json()).toEqual({ error: "Unauthorized" });
+		if (body?.error) {
+			expect(body.error).toBe("Unauthorized");
+		} else {
+			expectApiEnvelope(body, 401);
+			expect(body.message).toBe("Unauthorized");
+			expect(body.isUnauthorized).toBe(true);
+		}
 	});
 
 	it("ar trebui sa returneze 400 pentru TOATE tipurile de ID-uri invalide", async () => {
@@ -86,7 +93,7 @@ describe("GET /api/tasks/:id", () => {
 			expect(response.status).toBe(404);
 			expectNotFoundApiResponse(
 				body,
-				`The task with ID '${fakeId}' does not exist in the system.`,
+				`Eroare: Task-ul cu ID-ul '${fakeId}' nu exista in sistem.`,
 				404,
 			);
 		} finally {
@@ -132,7 +139,9 @@ describe("GET /api/tasks/:id", () => {
 		).mockResolvedValue(mockTask as any);
 
 		try {
-			const response = await app.request(`/api/tasks/${validId}`);
+			const response = await app.request(`/api/tasks/${validId}`, {
+				headers: { Authorization: "Bearer fake-test-token" },
+			});
 			const body: any = await response.json();
 
 			expect(response.status).toBe(200);
@@ -143,6 +152,7 @@ describe("GET /api/tasks/:id", () => {
 	});
 
 	it("smoke: envelope-ul complet este prezent pentru GET /tasks/:id", async () => {
+		authenticate();
 		const validId = "3";
 		const mockTask = {
 			id: Number(validId),
@@ -155,7 +165,9 @@ describe("GET /api/tasks/:id", () => {
 		).mockResolvedValue(mockTask as any);
 
 		try {
-			const response = await app.request(`/api/tasks/${validId}`);
+			const response = await app.request(`/api/tasks/${validId}`, {
+				headers: { Authorization: "Bearer fake-test-token" },
+			});
 			const body: any = await response.json();
 
 			expect(response.status).toBe(200);

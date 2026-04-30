@@ -98,8 +98,8 @@ export class HelpRequestController {
 				if (error instanceof ModerationError) {
 					//return c.json({ error: error.message }, 400);
 					return sendApiResponse(c, null, {
-						kind: "clientError",
 						message: error.message,
+						kind: "clientError",
 					});
 				}
 
@@ -116,7 +116,8 @@ export class HelpRequestController {
 					return session;
 				}
 				if (!session) {
-					return c.json({ error: "Unauthorized" }, 401);
+					//return c.json({ error: "Unauthorized" }, 401);
+					return sendApiResponse(c, null, { kind: "unauthorized" });
 				}
 
 				//Apelam validatorul nostru curat, trimitandu-i toti parametrii din URL
@@ -124,10 +125,10 @@ export class HelpRequestController {
 
 				//Daca validatorul gaseste o problema
 				if (validation.error || !validation.validData) {
-					return c.json(
-						{ error: validation.error || "Eroare de validare." },
-						400,
-					);
+					return sendApiResponse(c, null, {
+						message: validation.error || "Validation Error.",
+						kind: "clientError",
+					});
 				}
 
 				//Extragem parametrii
@@ -140,10 +141,11 @@ export class HelpRequestController {
 					filters,
 				);
 
-				return c.json(result, 200);
+				return sendApiResponse(c, result, { kind: "success" });
 			} catch (error) {
 				console.error("Eroare la GET /tasks paginat si sortat:", error);
-				return c.json({ error: "Eroare interna a serverului." }, 500);
+				//return c.json({ error: "Eroare interna a serverului." }, 500);
+				return sendApiResponse(c, null, { kind: "serverError" });
 			}
 		})
 
@@ -178,15 +180,17 @@ export class HelpRequestController {
 				) {
 					return sendApiResponse(c, null, {
 						kind: "notFound",
-						message: `The task with ID '${requestedId}' does not exist in the system.`,
+						message: `Eroare: Task-ul cu ID-ul '${requestedId}' nu exista in sistem.`,
 					});
 				}
 
 				const dataToReturn = Array.isArray(foundTask)
 					? foundTask[0]
 					: foundTask;
-				return c.json(sanitizeAnonymousTask(dataToReturn), 200);
-				//return sendApiResponse(c, dataToReturn);
+				//return c.json(sanitizeAnonymousTask(dataToReturn), 200);
+				return sendApiResponse(c, sanitizeAnonymousTask(dataToReturn), {
+					kind: "success",
+				});
 			} catch (error) {
 				console.error(
 					`Eroare critica la GET /tasks/${c.req.param("id")} :`,
@@ -212,11 +216,11 @@ export class HelpRequestController {
 			try {
 				body = await c.req.json();
 			} catch {
-				//return c.json({ error: "Request body must be valid JSON" }, 400);
 				return sendApiResponse(c, null, {
 					kind: "clientError",
 					message: "Request body must be valid JSON",
 				});
+				//return c.json({ error: "Request body must be valid JSON" }, 400);
 			}
 
 			const { status } = body;
@@ -241,10 +245,10 @@ export class HelpRequestController {
 						requestId,
 					);
 				if (!task) {
-					return c.json(
-						{ error: `HelpRequest with id ${requestId} not found` },
-						404,
-					);
+					return sendApiResponse(c, null, {
+						kind: "notFound",
+						message: `HelpRequest with id ${requestId} not found`,
+					});
 				}
 
 				const assignment = session
@@ -262,7 +266,12 @@ export class HelpRequestController {
 					!isOwner &&
 					!isAssignedVolunteer
 				) {
-					return c.json({ message: "Forbidden" }, 403);
+					//return c.json({ message: "Forbidden" }, 403);
+					return sendApiResponse(c, null, {
+						statusCode: 403,
+						message:
+							"You do not have permission to change the status of this help request.",
+					});
 				}
 
 				const updated = await this.helpRequestService.updateHelpRequestStatus(
@@ -270,7 +279,7 @@ export class HelpRequestController {
 					status as RequestStatus,
 				);
 				//return c.json(updated, 200);
-				return sendApiResponse(c, updated);
+				return sendApiResponse(c, updated, { kind: "success" });
 			} catch (error) {
 				if (error instanceof NotFoundError) {
 					//return c.json({ error: error.message }, 404);
@@ -289,42 +298,6 @@ export class HelpRequestController {
 				}
 
 				throw error;
-			}
-		})
-
-		// BE1-12 & BE1-13 (Paginare + Sortare)
-		.get("/", authMiddleware, async (c) => {
-			try {
-				//Apelam validatorul nostru curat, trimitându-i toți parametrii din URL
-				const validation = validateTasksQuery(c.req.query());
-
-				//Daca validatorul gaseste o problema
-				if (validation.error || !validation.validData) {
-					return sendApiResponse(c, null, {
-						kind: "clientError",
-						message: validation.error || "Validation error.",
-					});
-				}
-
-				//Extragem parametrii
-				const { page, pageSize, sortBy } = validation.validData;
-				const result = await this.helpRequestService.getPaginatedTasks(
-					page,
-					pageSize,
-					sortBy,
-					//order,
-					//filters,
-				);
-
-				//return c.json(result, 200);
-				return sendApiResponse(c, result);
-			} catch (error) {
-				console.error("Eroare la GET /tasks paginat si sortat:", error);
-				//return c.json({ error: "Eroare interna a serverului" }, 500);
-				return sendApiResponse(c, null, {
-					kind: "serverError",
-					message: "Internal server error",
-				});
 			}
 		});
 }

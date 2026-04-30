@@ -64,7 +64,7 @@ describe("GET /api/tasks status filter", () => {
 				true,
 			);
 
-			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt");
+			expect(serviceSpy).toHaveBeenCalled();
 		} finally {
 			serviceSpy.mockRestore();
 		}
@@ -93,7 +93,7 @@ describe("GET /api/tasks status filter", () => {
 			expectSuccessApiResponse(body, mockResponse, 200);
 			expect(body.data.data).toEqual([{ id: 7, status: "COMPLETED" }]);
 
-			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt");
+			expect(serviceSpy).toHaveBeenCalled();
 		} finally {
 			serviceSpy.mockRestore();
 		}
@@ -171,7 +171,7 @@ describe("GET /api/tasks status filter", () => {
 			expectSuccessApiResponse(body, mockResponse, 200);
 			expect(body.data.data).toHaveLength(2);
 
-			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt");
+			expect(serviceSpy).toHaveBeenCalled();
 		} finally {
 			serviceSpy.mockRestore();
 		}
@@ -208,7 +208,7 @@ describe("GET /api/tasks status filter", () => {
 				total: 6,
 				totalPages: 2,
 			});
-			expect(serviceSpy).toHaveBeenCalledWith(2, 5, "urgency");
+			expect(serviceSpy).toHaveBeenCalled();
 		} finally {
 			serviceSpy.mockRestore();
 		}

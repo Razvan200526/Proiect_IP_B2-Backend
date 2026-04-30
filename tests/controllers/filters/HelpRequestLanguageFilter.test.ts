@@ -56,7 +56,9 @@ describe("GET /api/tasks language filter", () => {
 			expect(body.data.meta.total).toBe(0);
 
 			// language este normalizat la lowercase de validator
-			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt");
+			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {
+				language: "zz",
+			});
 		} finally {
 			serviceSpy.mockRestore();
 		}
@@ -124,7 +126,9 @@ describe("GET /api/tasks language filter", () => {
 			expect(body.data.data).toHaveLength(3);
 			expect(body.data.data[0].requestDetails).toBeNull();
 
-			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt");
+			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {
+				language: "ro",
+			});
 		} finally {
 			serviceSpy.mockRestore();
 		}
@@ -152,7 +156,9 @@ describe("GET /api/tasks language filter", () => {
 			expect(response.status).toBe(200);
 			expectSuccessApiResponse(body, mockResponse, 200);
 
-			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt");
+			expect(serviceSpy).toHaveBeenCalledWith(1, 10, "createdAt", "DESC", {
+				language: "ro",
+			});
 		} finally {
 			serviceSpy.mockRestore();
 		}

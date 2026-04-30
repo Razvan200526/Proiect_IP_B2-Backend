@@ -13,6 +13,7 @@ import { join } from "node:path";
 import "../../src/app";
 import auth from "../../src/auth";
 import { Controller } from "../../src/di/decorators/controller";
+import { expectApiEnvelope } from "./apiResponseAssertions";
 
 const loadControllers = async (dir: string) => {
 	const controllersDir = existsSync(dir)
@@ -136,14 +137,9 @@ describe("POST /tasks validation", () => {
 			...validPayload,
 			requestedByUserId: "user-123",
 		});
-		expect(await response.json()).toEqual({
-			/*
-        }
-		expect(createHelpRequest).toHaveBeenCalledWith(validPayload);
 		const body: any = await response.json();
 		expectApiEnvelope(body, 201);
 		expect(body.data).toEqual({
-		*/
 			id: 101,
 			...validPayload,
 			requestedByUserId: "user-123",

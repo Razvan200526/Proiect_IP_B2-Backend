@@ -156,7 +156,11 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(403);
-		expect(body).toEqual({ message: "Forbidden" });
+		expectClientErrorApiResponse(
+			body,
+			"You do not have permission to change the status of this help request.",
+			403,
+		);
 
 		const unchanged = store.get(14);
 		expect(unchanged?.status).toBe("OPEN");
@@ -225,13 +229,6 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(200);
-		expect(body).toHaveProperty("data");
-		expect(body).toHaveProperty("message");
-		expect(body).toHaveProperty("notFound");
-		expect(body).toHaveProperty("isUnauthorized");
-		expect(body).toHaveProperty("isServerError");
-		expect(body).toHaveProperty("isClientError");
-		expect(body).toHaveProperty("app");
-		expect(body).toHaveProperty("statusCode");
+		expectSuccessApiResponse(body, { id: 14, status: "MATCHED" }, 200);
 	});
 });
