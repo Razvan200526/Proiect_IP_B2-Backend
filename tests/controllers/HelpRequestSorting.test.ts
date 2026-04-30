@@ -36,7 +36,10 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 		expect(response.status).toBe(400);
 
 		const body: any = await response.json();
-		expectClientErrorApiResponse(body, "Eroare: 'sortBy' accepta doar: createdAt, urgency.");
+		expectClientErrorApiResponse(
+			body,
+			"Eroare: 'sortBy' accepta doar: createdAt, urgency.",
+		);
 	});
 
 	it("ar trebui sa returneze 400 daca order este invalid (ex: RANDOM)", async () => {
@@ -51,7 +54,10 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 		expect(response.status).toBe(400);
 
 		const body: any = await response.json();
-		expectClientErrorApiResponse(body, "Eroare: 'order' accepta doar: ASC, DESC.");
+		expectClientErrorApiResponse(
+			body,
+			"Eroare: 'order' accepta doar: ASC, DESC.",
+		);
 	});
 
 	it("ar trebui sa foloseasca createdAt si DESC implicit daca nu sunt trimisi parametri", async () => {
@@ -78,7 +84,7 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 			data: [],
 			meta: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
 		});
-				serviceSpy.mockRestore();
+		serviceSpy.mockRestore();
 	});
 
 	it("ar trebui sa returneze CRITICAL primele pentru ?sortBy=urgency&order=DESC", async () => {
@@ -114,7 +120,7 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 		expect(body.data.data[0].urgency).toBe("CRITICAL");
 		expect(body.data.data[1].urgency).toBe("LOW");
 
-				serviceSpy.mockRestore();
+		serviceSpy.mockRestore();
 	});
 
 	it("ar trebui sa returneze LOW primele pentru ?sortBy=urgency&order=ASC", async () => {
@@ -149,7 +155,7 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 		});
 		expect(body.data.data[0].urgency).toBe("LOW");
 
-				serviceSpy.mockRestore();
+		serviceSpy.mockRestore();
 	});
 
 	it("ar trebui sa returneze cele mai vechi primele pentru ?sortBy=createdAt&order=ASC", async () => {
@@ -188,7 +194,7 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 		expect(body.data.data[0].createdAt).toBe("2023-01-01");
 		expect(body.data.data[1].createdAt).toBe("2024-01-01");
 
-				serviceSpy.mockRestore();
+		serviceSpy.mockRestore();
 	});
 
 	it("ar trebui sa returneze cele mai noi primele pentru ?sortBy=createdAt&order=DESC", async () => {
@@ -226,7 +232,7 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 		});
 		expect(body.data.data[0].createdAt).toBe("2024-01-01");
 
-				serviceSpy.mockRestore();
+		serviceSpy.mockRestore();
 	});
 
 	it("ar trebui sa aplice sortarea inainte de paginare pe un set mare de date", async () => {
@@ -252,7 +258,7 @@ describe("GET /api/tasks (Sortare BE1-13)", () => {
 		);
 		expect(response.status).toBe(200);
 
-				serviceSpy.mockRestore();
+		serviceSpy.mockRestore();
 	});
 
 	it("smoke: response envelope complet pentru GET /api/tasks sortat", async () => {

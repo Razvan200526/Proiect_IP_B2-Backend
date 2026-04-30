@@ -116,7 +116,11 @@ describe("GET /api/tasks/:id", () => {
 
 	it("smoke: envelope-ul complet este prezent pentru GET /tasks/:id", async () => {
 		const validId = "3";
-		const mockTask = { id: Number(validId), title: "Smoke task", status: "OPEN" };
+		const mockTask = {
+			id: Number(validId),
+			title: "Smoke task",
+			status: "OPEN",
+		};
 		const mockFound = spyOn(
 			HelpRequestService.prototype,
 			"getHelpRequestById",
@@ -162,7 +166,11 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expectClientErrorApiResponse(body, "Eroare: 'pageSize' trebuie sa fie intre 1 si 100.", 400);
+		expectClientErrorApiResponse(
+			body,
+			"Eroare: 'pageSize' trebuie sa fie intre 1 si 100.",
+			400,
+		);
 	});
 
 	it("ar trebui sa returneze 400 daca page este numar negativ", async () => {
@@ -221,7 +229,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		expect(body.data.meta.page).toBe(1);
 		expect(body.data.meta.pageSize).toBe(10);
-		
+
 		serviceSpy.mockRestore();
 	});
 
@@ -252,7 +260,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		expect(body.data.data).toBeArray();
 		expect(body.data.data.length).toBe(0);
 		expect(body.data.meta.page).toBe(999);
-		
+
 		serviceSpy.mockRestore();
 	});
 
@@ -311,7 +319,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		expect(body.data.meta.page).toBe(2);
 		expect(body.data.meta.pageSize).toBe(5);
-		
+
 		serviceSpy.mockRestore();
 	});
 
@@ -346,7 +354,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		expect(body.data.data[0].requestDetails).not.toBeNull();
 		expect(body.data.data[1].requestDetails).toBeNull();
-		
+
 		serviceSpy.mockRestore();
 	});
 
@@ -381,7 +389,7 @@ describe("GET /api/tasks (Paginare BE1-12)", () => {
 		});
 		expect(body.data.data[0].requestedByUserId).toBeUndefined();
 		expect(body.data.data[1].requestedByUserId).toBe("user-123");
-		
+
 		serviceSpy.mockRestore();
 	});
 });

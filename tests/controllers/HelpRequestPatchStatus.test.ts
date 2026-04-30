@@ -46,7 +46,10 @@ describe("PATCH /api/tasks/:id/status", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expectClientErrorApiResponse(body, "'id' must be a valid numeric request identifier");
+		expectClientErrorApiResponse(
+			body,
+			"'id' must be a valid numeric request identifier",
+		);
 	});
 
 	it("returneaza 400 cand corpul requestului nu este un JSON valid", async () => {
@@ -70,7 +73,10 @@ describe("PATCH /api/tasks/:id/status", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expectClientErrorApiResponse(body, "'status' must be one of: OPEN, MATCHED, IN_PROGRESS, COMPLETED, CANCELLED, REJECTED");
+		expectClientErrorApiResponse(
+			body,
+			"'status' must be one of: OPEN, MATCHED, IN_PROGRESS, COMPLETED, CANCELLED, REJECTED",
+		);
 	});
 
 	it("returneaza 404 cand task-ul nu exista in baza de date", async () => {
@@ -113,7 +119,11 @@ describe("PATCH /api/tasks/:id/status", () => {
 			body: JSON.stringify({ status: "OPEN" }),
 		});
 
-		if (response.status === 200 || response.status === 409 || response.status === 404) {
+		if (
+			response.status === 200 ||
+			response.status === 409 ||
+			response.status === 404
+		) {
 			const body: any = await response.json();
 			expect(body).toHaveProperty("data");
 			expect(body).toHaveProperty("message");

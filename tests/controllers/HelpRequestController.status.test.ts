@@ -123,7 +123,11 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(409);
-		expectClientErrorApiResponse(body, "Invalid transition from OPEN to COMPLETED", 409);
+		expectClientErrorApiResponse(
+			body,
+			"Invalid transition from OPEN to COMPLETED",
+			409,
+		);
 
 		const unchanged = store.get(12);
 		expect(unchanged?.status).toBe("OPEN");
@@ -136,7 +140,11 @@ describe("PATCH /tasks/:id/status", () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(409);
-		expectClientErrorApiResponse(body, "Invalid transition from COMPLETED to MATCHED", 409);
+		expectClientErrorApiResponse(
+			body,
+			"Invalid transition from COMPLETED to MATCHED",
+			409,
+		);
 
 		const unchanged = store.get(13);
 		expect(unchanged?.status).toBe("COMPLETED");
