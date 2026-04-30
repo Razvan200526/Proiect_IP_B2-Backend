@@ -1,6 +1,8 @@
 import { Hono } from "hono";
+import type { AppEnv } from "../app";
 
 import { Controller } from "../utils/controller";
+import { authMiddlware } from "../middlware/authMiddleware";
 import {
 	createValidationMiddleware,
 	helpRequestInputSchema,
@@ -11,7 +13,8 @@ import { sendApiResponse } from "../utils/apiReponse";
 
 @Controller("/help")
 export class HelpController {
-	controller = new Hono()
+	controller = new Hono<AppEnv>()
+		.use("*", authMiddlware)
 		.use("/", validationMiddleware)
 		.use("/helpRequest", createValidationMiddleware(helpRequestInputSchema))
 		.use("/requestDetails", createValidationMiddleware(requestDetailsSchema))

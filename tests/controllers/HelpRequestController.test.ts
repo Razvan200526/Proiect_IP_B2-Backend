@@ -16,6 +16,8 @@ import {
 //import { HelpRequestController } from "../../src/controllers/HelpRequestController";
 
 describe("GET /api/tasks/:id", () => {
+	let authSpy: ReturnType<typeof spyOn> | undefined;
+
 	beforeAll(async () => {
 		const controllersPath = join(
 			(import.meta as any).dir,
@@ -24,7 +26,29 @@ describe("GET /api/tasks/:id", () => {
 		await loadControllers(controllersPath);
 	});
 
+	afterEach(() => {
+		authSpy?.mockRestore();
+		authSpy = undefined;
+	});
+
+	const authenticate = () => {
+		authSpy = spyOn(auth.api, "getSession").mockResolvedValue({
+			user: { id: "user-123", email: "test@test.com" } as any,
+			session: { id: "session-123", userId: "user-123" } as any,
+		});
+	};
+
+	it("ar trebui sa returneze 401 pentru un task individual fara autentificare", async () => {
+		authSpy = spyOn(auth.api, "getSession").mockResolvedValue(null as any);
+
+		const response = await app.request("/api/tasks/1");
+
+		expect(response.status).toBe(401);
+		expect(await response.json()).toEqual({ error: "Unauthorized" });
+	});
+
 	it("ar trebui sa returneze 400 pentru TOATE tipurile de ID-uri invalide", async () => {
+		authenticate();
 		const badInputs = [
 			"abc", // Litere / Text pur
 			"@#!", // Caractere speciale
@@ -48,6 +72,7 @@ describe("GET /api/tasks/:id", () => {
 	});
 
 	it("ar trebui sa returneze 404 pentru un task care nu exista", async () => {
+		authenticate();
 		const fakeId = "999999"; // Un ID care nu a fost creat
 		const mockNotFound = spyOn(
 			HelpRequestService.prototype,
@@ -70,6 +95,7 @@ describe("GET /api/tasks/:id", () => {
 	});
 
 	it("ar trebui sa returneze 500 daca pica baza de date / serverul", async () => {
+		authenticate();
 		// Simulam o pana de curent la baza de date pentru o secunda
 		const mockError = spyOn(
 			HelpRequestService.prototype,
@@ -92,6 +118,7 @@ describe("GET /api/tasks/:id", () => {
 	});
 
 	it("ar trebui sa returneze 200 si datele pentru un task valid", async () => {
+		authenticate();
 		const validId = "2";
 		const mockTask = {
 			id: Number(validId),
