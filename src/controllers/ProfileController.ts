@@ -34,7 +34,6 @@ export class ProfileController {
 		})
 		.use(authMiddlware)
 
-
 		.post("/", async (c) => {
 			const session = c.get("session");
 			if (!session) {
