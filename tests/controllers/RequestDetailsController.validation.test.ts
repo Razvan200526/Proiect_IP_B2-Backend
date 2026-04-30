@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { Hono } from "hono";
+import { expectApiEnvelope } from "./apiResponseAssertions";
 
 //const Controller = () => (_target: unknown) => {};
 
@@ -46,15 +47,17 @@ describe("POST /tasks/:id/details validation", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expect(body.statusCode).toBe(400);
-		expect(body.isClientError).toBe(true);
-		expect(body.data).toEqual({
-			errors: [
-				{
-					field: "languageNeeded",
-					message: "language needed must be at most 50 characters",
-				},
-			],
+		expectApiEnvelope(body, 400);
+		expect(body).toMatchObject({
+			data: {
+				errors: [
+					{
+						field: "languageNeeded",
+						message: "language needed must be at most 50 characters",
+					},
+				],
+			},
+			isClientError: true,
 		});
 		expect(upsertDetails).not.toHaveBeenCalled();
 	});
@@ -71,15 +74,17 @@ describe("POST /tasks/:id/details validation", () => {
 
 		expect(response.status).toBe(400);
 		const body: any = await response.json();
-		expect(body.statusCode).toBe(400);
-		expect(body.isClientError).toBe(true);
-		expect(body.data).toEqual({
-			errors: [
-				{
-					field: "body",
-					message: 'Unrecognized key: "extraField"',
-				},
-			],
+		expectApiEnvelope(body, 400);
+		expect(body).toMatchObject({
+			data: {
+				errors: [
+					{
+						field: "body",
+						message: 'Unrecognized key: "extraField"',
+					},
+				],
+			},
+			isClientError: true,
 		});
 		expect(upsertDetails).not.toHaveBeenCalled();
 	});
@@ -95,7 +100,7 @@ describe("POST /tasks/:id/details validation", () => {
 		expect(upsertDetails).toHaveBeenCalledTimes(1);
 		expect(upsertDetails).toHaveBeenCalledWith(10, validPayload);
 		const body: any = await response.json();
-		expect(body.statusCode).toBe(200);
+		expectApiEnvelope(body, 200);
 		expect(body.data).toEqual({
 			helpRequestId: 10,
 			...validPayload,
@@ -110,13 +115,6 @@ describe("POST /tasks/:id/details validation", () => {
 		});
 
 		const body: any = await response.json();
-		expect(body).toHaveProperty("data");
-		expect(body).toHaveProperty("message");
-		expect(body).toHaveProperty("notFound");
-		expect(body).toHaveProperty("isUnauthorized");
-		expect(body).toHaveProperty("isServerError");
-		expect(body).toHaveProperty("isClientError");
-		expect(body).toHaveProperty("app");
-		expect(body).toHaveProperty("statusCode");
+		expectApiEnvelope(body, response.status as 200);
 	});
 });
