@@ -9,7 +9,7 @@ import type {
 } from "../types/validation.types";
 import { buildSafeValidationResponse } from "../utils/safeErrorBuilder";
 import { validateRequest } from "../validators/validateRequest";
-import {sendApiResponse} from "../../utils/apiReponse";
+import { sendApiResponse } from "../../utils/apiReponse";
 
 // Completam configuratia primita din exterior peste valorile implicite ale modulului.
 const mergeConfig = (config?: Partial<ValidationConfig>): ValidationConfig => ({
@@ -45,7 +45,7 @@ export const createValidationMiddleware: ValidationMiddlewareFactory = (
 					buildSafeValidationResponse(error.errors),
 					{
 						statusCode: error.statusCode,
-					}
+					},
 				);
 			}
 
@@ -60,7 +60,7 @@ export const createValidationMiddleware: ValidationMiddlewareFactory = (
 				]),
 				{
 					statusCode: resolvedConfig.statusCode,
-				}
+				},
 			);
 		}
 
