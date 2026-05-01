@@ -2,12 +2,19 @@ import {
 	HelpRequestRepository,
 	type CreateHelpRequestDTO,
 	type HelpRequest,
-} from "../db/repositories/helpRequests.repository";
+} from "../db/repositories/helpRequest.repository";
 import { inject } from "../di";
 import { Service } from "../di/decorators/service";
+import {
+	ModerationService,
+	ModerationError,
+	ModerationLevel,
+} from "./ModerationService";
+import { logger } from "../utils/logger";
 import type { requestStatusEnum } from "../db/enums";
 import { InvalidStatusTransitionError, NotFoundError } from "../utils/Errors";
 import { HelpRequestDetailsRepository } from "../db/repositories/requestDetails.repository";
+//import type { TaskFilterParams } from "../filters";
 
 // State machine
 type RequestStatus = (typeof requestStatusEnum.enumValues)[number];
@@ -25,16 +32,45 @@ export class HelpRequestService {
 		private readonly helpRequestRepo: HelpRequestRepository,
 		@inject(HelpRequestDetailsRepository)
 		private readonly helpRequestDetailsRepo: HelpRequestDetailsRepository,
+		@inject(ModerationService)
+		private readonly moderationService: ModerationService,
 	) {}
 
 	async createHelpRequest(data: CreateHelpRequestDTO) {
+		const titleResult = this.moderationService.scanContent(data.title);
+		const descResult = this.moderationService.scanContent(data.description);
+
+		let finalResult = ModerationLevel.CLEAN;
+		if (
+			titleResult.level === ModerationLevel.BLOCKED ||
+			descResult.level === ModerationLevel.BLOCKED
+		) {
+			finalResult = ModerationLevel.BLOCKED;
+		} else if (
+			titleResult.level === ModerationLevel.FLAGGED ||
+			descResult.level === ModerationLevel.FLAGGED
+		) {
+			finalResult = ModerationLevel.FLAGGED;
+		}
+
+		const reason = titleResult.reason || descResult.reason;
+
+		if (finalResult === ModerationLevel.BLOCKED) {
+			throw new ModerationError(reason ?? "Inappropriate content.");
+		}
+
+		if (finalResult === ModerationLevel.FLAGGED) {
+			// TODO: do something?
+		}
+
 		try {
 			return await this.helpRequestRepo.create({
 				...data,
 				status: "OPEN",
 			});
 		} catch (error) {
-			console.error("Failed to create help request:", error);
+			console.error("--- RAW DB ERROR ---", error);
+			logger.exception(error);
 			throw new Error("Could not create help request");
 		}
 	}
@@ -65,8 +101,8 @@ export class HelpRequestService {
 			...helpRequest,
 			...(location !== undefined
 				? {
-						locationCity: location?.city ?? null,
-						locationAddressText: location?.addressText ?? null,
+						city: location?.city ?? null,
+						addressText: location?.addressText ?? null,
 						location: location?.location ?? null,
 					}
 				: {}),
@@ -104,5 +140,34 @@ export class HelpRequestService {
 		}
 
 		return updated;
+	}
+
+	//BE1-12
+	async getPaginatedTasks(page: number, pageSize: number, filters?: any) {
+		const { data, total } = await this.helpRequestRepo.findPaginatedWithDetails(
+			page,
+			pageSize,
+			filters,
+		);
+
+		const totalPages = Math.ceil(total / pageSize);
+
+		const formattedData = data.map((task) => {
+			if (task.anonymousMode) {
+				const { requestedByUserId, ...restOfTask } = task;
+				return restOfTask;
+			}
+			return task;
+		});
+
+		return {
+			data: formattedData,
+			meta: {
+				page: page,
+				pageSize: pageSize,
+				total: total,
+				totalPages: totalPages,
+			},
+		};
 	}
 }

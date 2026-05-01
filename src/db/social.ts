@@ -9,7 +9,11 @@ import {
 	unique,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
-import { accountStatusEnum, conversationStatusEnum, notificationTypeEnum } from "./enums";
+import {
+	accountStatusEnum,
+	conversationStatusEnum,
+	notificationTypeEnum,
+} from "./enums";
 import { helpRequests, taskAssignments } from "./requests";
 
 export const conversations = pgTable("conversations", {
@@ -172,7 +176,6 @@ export type InteractionHistoryType = InferSelectModel<
 >;
 export type NotificationType = InferSelectModel<typeof notifications>;
 
-
 /**
  * Stores a log entry every time a user's account is disabled.
  * Used for auditing, preventing duplicate notifications, and
@@ -194,11 +197,9 @@ export const disableNotifications = pgTable(
 			.notNull()
 			.defaultNow(),
 	},
-	(t) => [
-		index("idx_disable_notifications_user_id").on(t.userId),
-	],
+	(t) => [index("idx_disable_notifications_user_id").on(t.userId)],
 );
- 
+
 export const disableNotificationsRelations = relations(
 	disableNotifications,
 	({ one }) => ({
@@ -208,7 +209,7 @@ export const disableNotificationsRelations = relations(
 		}),
 	}),
 );
- 
+
 export type DisableNotification = typeof disableNotifications.$inferSelect;
 export type CreateDisableNotificationDTO =
 	typeof disableNotifications.$inferInsert;
