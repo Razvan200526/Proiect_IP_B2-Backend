@@ -6,7 +6,7 @@ import { z } from "zod";
 import { RequestDetailsService } from "../services/RequestDetailsService";
 import { sendApiResponse } from "../utils/apiReponse";
 import { authMiddlware } from "../middlware/authMiddleware";
-import {describeRoute, resolver, validator as zValidator} from "hono-openapi";
+import { describeRoute, resolver, validator as zValidator } from "hono-openapi";
 
 // Zod Schemas for Swagger documentation and validation
 const requestDetailsSchema = z
@@ -42,7 +42,7 @@ const validationErrorSchema = z
 					z.object({
 						field: z.string(),
 						message: z.string(),
-					})
+					}),
 				),
 			})
 			.nullable(),
@@ -153,10 +153,12 @@ export class RequestDetailsController {
 	) {}
 
 	controller = new Hono<AppEnv>()
-		.put("/:id/details",
+		.put(
+			"/:id/details",
 			describeRoute({
 				summary: "Update/Add task details",
-				description: "Performs an upsert for the details of an existing task. Requires authorization and an OPEN status.",
+				description:
+					"Performs an upsert for the details of an existing task. Requires authorization and an OPEN status.",
 				tags: ["Tasks"],
 				responses: {
 					200: {
@@ -184,7 +186,8 @@ export class RequestDetailsController {
 						},
 					},
 					409: {
-						description: "Conflict: Details can only be edited when the status is OPEN",
+						description:
+							"Conflict: Details can only be edited when the status is OPEN",
 						content: {
 							"application/json": { schema: resolver(emptyApiResponseSchema) },
 						},
@@ -199,88 +202,95 @@ export class RequestDetailsController {
 			}),
 			zValidator("json", requestDetailsSchema),
 			async (c) => {
-			const parsedBody = c.req.valid("json");
+				const parsedBody = c.req.valid("json");
 
-			try {
-				const id = Number(c.req.param("id"));
-				if (!Number.isInteger(id)) {
-					//return c.json({ error: "Invalid id" }, 400);
-					return sendApiResponse(c, null, {
-						statusCode: 400,
-						message: "Invalid id",
-					});
-				}
+				try {
+					const id = Number(c.req.param("id"));
+					if (!Number.isInteger(id)) {
+						//return c.json({ error: "Invalid id" }, 400);
+						return sendApiResponse(c, null, {
+							statusCode: 400,
+							message: "Invalid id",
+						});
+					}
 
-				const session = await requireSession(c);
-				if (session instanceof Response) {
-					return session;
-				}
-				if (this.requestDetailsService.authorizeDetailsMutation) {
-					const authorization =
-						await this.requestDetailsService.authorizeDetailsMutation(
-							id,
-							session.userId,
-						);
-					if (authorization.status === "notFound") {
+					const session = await requireSession(c);
+					if (session instanceof Response) {
+						return session;
+					}
+					if (this.requestDetailsService.authorizeDetailsMutation) {
+						const authorization =
+							await this.requestDetailsService.authorizeDetailsMutation(
+								id,
+								session.userId,
+							);
+						if (authorization.status === "notFound") {
+							return sendApiResponse(c, null, {
+								kind: "notFound",
+								message: "Task not found",
+							});
+							//return c.json({ error: "Task not found" }, 404);
+						}
+						if (authorization.status === "forbidden") {
+							return sendApiResponse(c, null, {
+								statusCode: 403,
+								message: "Forbidden",
+							});
+							//return c.json({ error: "Forbidden" }, 403);
+						}
+						if (authorization.status === "invalidStatus") {
+							return sendApiResponse(c, null, {
+								statusCode: 409,
+								message:
+									'"Details can only be updated when task status is OPEN."',
+							});
+						}
+					}
+
+					const result = await this.requestDetailsService.upsertDetails(
+						id,
+						parsedBody,
+					);
+
+					if ("message" in result) {
+						//return c.json({ error: result.message }, result.status);
+						return sendApiResponse(c, null, {
+							statusCode: result.status,
+							message: result.message,
+						});
+					}
+
+					if ("notFound" in result && result.notFound) {
 						return sendApiResponse(c, null, {
 							kind: "notFound",
 							message: "Task not found",
 						});
 						//return c.json({ error: "Task not found" }, 404);
 					}
-					if (authorization.status === "forbidden") {
-						return sendApiResponse(c, null, {
-							statusCode: 403,
-							message: "Forbidden",
-						});
-						//return c.json({ error: "Forbidden" }, 403);
-					}
-					if (authorization.status === "invalidStatus") {
-						return sendApiResponse(c, null, {
-							statusCode: 409,
-							message:
-								'"Details can only be updated when task status is OPEN."',
-						});
-					}
-				}
 
-			const result = await this.requestDetailsService.upsertDetails(
-				id,
-				parsedBody,
-			);
-
-				if ("message" in result) {
-					//return c.json({ error: result.message }, result.status);
-					return sendApiResponse(c, null, {
-						statusCode: result.status,
-						message: result.message,
+					return sendApiResponse(c, "data" in result ? result.data : null, {
+						statusCode: "status" in result ? result.status : 200,
 					});
+				} catch (_error) {
+					return c.json(
+						{ error: "Could not update help request details" },
+						500,
+					);
 				}
+			},
+		)
 
-				if ("notFound" in result && result.notFound) {
-					return sendApiResponse(c, null, {
-						kind: "notFound",
-						message: "Task not found",
-					});
-					//return c.json({ error: "Task not found" }, 404);
-				}
-
-				return sendApiResponse(c, "data" in result ? result.data : null, {
-					statusCode: "status" in result ? result.status : 200,
-				});
-			} catch (_error) {
-				return c.json({ error: "Could not update help request details" }, 500);
-			}
-		})
-
-		.delete("/:id/details",
+		.delete(
+			"/:id/details",
 			describeRoute({
 				summary: "Delete task details",
-				description: "Deletes the details of an existing task. Requires authorization and the task must not be in a restricted status (e.g., MATCHED, COMPLETED).",
+				description:
+					"Deletes the details of an existing task. Requires authorization and the task must not be in a restricted status (e.g., MATCHED, COMPLETED).",
 				tags: ["Tasks"],
 				responses: {
 					204: {
-						description: "The details have been successfully deleted (No Content)",
+						description:
+							"The details have been successfully deleted (No Content)",
 						// Fără `content` aici pentru că 204 nu are body!
 					},
 					400: {
@@ -302,7 +312,8 @@ export class RequestDetailsController {
 						},
 					},
 					409: {
-						description: "Conflict: Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED",
+						description:
+							"Conflict: Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED",
 						content: {
 							"application/json": { schema: resolver(emptyApiResponseSchema) },
 						},
@@ -316,60 +327,61 @@ export class RequestDetailsController {
 				},
 			}),
 			async (c) => {
-			const id = Number(c.req.param("id"));
-			if (!Number.isInteger(id)) {
+				const id = Number(c.req.param("id"));
+				if (!Number.isInteger(id)) {
+					return sendApiResponse(c, null, {
+						statusCode: 400,
+						message: "Invalid id",
+					});
+					//return c.json({ error: "Invalid id" }, 400);
+				}
+
+				const session = await requireSession(c);
+				if (session instanceof Response) {
+					return session;
+				}
+				if (this.requestDetailsService.authorizeDetailsMutation) {
+					const authorization =
+						await this.requestDetailsService.authorizeDetailsMutation(
+							id,
+							session.userId,
+						);
+					if (authorization.status === "notFound") {
+						return sendApiResponse(c, null, {
+							kind: "notFound",
+							message: "Task not found",
+						});
+						//return c.json({ message: "Task not found." }, 404);
+					}
+					if (authorization.status === "forbidden") {
+						return sendApiResponse(c, null, {
+							statusCode: 403,
+							message: "Forbidden",
+						});
+						//return c.json({ message: "Forbidden" }, 403);
+					}
+					if (authorization.status === "invalidStatus") {
+						return sendApiResponse(c, null, {
+							statusCode: 409,
+							message:
+								"Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED.",
+						});
+					}
+				}
+
+				const result =
+					await this.requestDetailsService.deleteHelpRequestDetails(id);
+
+				if (result.status === 204) {
+					//return c.body(null, 204);
+					return sendApiResponse(c, null, { kind: "noContent" });
+				}
+
+				//return c.json(result.body, result.status);
 				return sendApiResponse(c, null, {
-					statusCode: 400,
-					message: "Invalid id",
+					statusCode: result.status,
+					message: result.body.message,
 				});
-				//return c.json({ error: "Invalid id" }, 400);
-			}
-
-			const session = await requireSession(c);
-			if (session instanceof Response) {
-				return session;
-			}
-			if (this.requestDetailsService.authorizeDetailsMutation) {
-				const authorization =
-					await this.requestDetailsService.authorizeDetailsMutation(
-						id,
-						session.userId,
-					);
-				if (authorization.status === "notFound") {
-					return sendApiResponse(c, null, {
-						kind: "notFound",
-						message: "Task not found",
-					});
-					//return c.json({ message: "Task not found." }, 404);
-				}
-				if (authorization.status === "forbidden") {
-					return sendApiResponse(c, null, {
-						statusCode: 403,
-						message: "Forbidden",
-					});
-					//return c.json({ message: "Forbidden" }, 403);
-				}
-				if (authorization.status === "invalidStatus") {
-					return sendApiResponse(c, null, {
-						statusCode: 409,
-						message:
-							"Details cannot be deleted when task status is MATCHED, IN_PROGRESS, COMPLETED, CANCELLED or REJECTED.",
-					});
-				}
-			}
-
-			const result =
-				await this.requestDetailsService.deleteHelpRequestDetails(id);
-
-			if (result.status === 204) {
-				//return c.body(null, 204);
-				return sendApiResponse(c, null, { kind: "noContent" });
-			}
-
-			//return c.json(result.body, result.status);
-			return sendApiResponse(c, null, {
-				statusCode: result.status,
-				message: result.body.message,
-			});
-		});
+			},
+		);
 }
