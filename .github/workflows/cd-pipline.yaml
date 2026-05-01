@@ -6,7 +6,6 @@ on:
     workflows: ["CI Pipeline"]
     types:
       - completed
-  # push:
     branches:
       - main
   workflow_dispatch:
