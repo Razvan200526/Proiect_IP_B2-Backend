@@ -53,7 +53,7 @@ export class RequestDetailsController {
 	) {}
 
 	controller = new Hono<AppEnv>()
-		.on(["POST", "PUT"], "/:id/details", async (c) => {
+		.put("/:id/details", async (c) => {
 			const body = await c.req.json().catch(() => null);
 			const parsedBody = requestDetailsSchema.safeParse(body);
 			if (!parsedBody.success) {

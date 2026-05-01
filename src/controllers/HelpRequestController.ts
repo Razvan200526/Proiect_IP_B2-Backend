@@ -203,7 +203,7 @@ export class HelpRequestController {
 			}
 		})
 
-		.on(["POST", "PATCH"], "/:id/status", async (c) => {
+		.patch( "/:id/status", async (c) => {
 			const requestId = Number(c.req.param("id"));
 			if (!Number.isInteger(requestId)) {
 				return sendApiResponse(c, null, {
